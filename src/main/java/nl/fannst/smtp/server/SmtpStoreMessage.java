@@ -1,4 +1,4 @@
-package nl.fannst.smtp.server.runnables;
+package nl.fannst.smtp.server;
 
 import nl.fannst.Logger;
 import nl.fannst.datatypes.Pair;
@@ -10,10 +10,8 @@ import nl.fannst.models.accounts.BasicAccount;
 import nl.fannst.models.mail.Message;
 import nl.fannst.smtp.client.SmtpClient;
 import nl.fannst.smtp.client.SmtpClientMessage;
-import nl.fannst.smtp.headers.Received;
-import nl.fannst.smtp.server.SmtpServerSessionData;
+import nl.fannst.smtp.server.session.SmtpServerSessionData;
 
-import java.net.InetAddress;
 import java.security.PublicKey;
 import java.time.Instant;
 import java.util.*;
@@ -21,7 +19,6 @@ import java.util.*;
 public class SmtpStoreMessage implements Runnable {
     private final Logger m_Logger;
 
-    private final SmtpSessionInfo m_SessionInfo;
     private ArrayList<Header> m_Headers;
     private final String m_Message;
     private final ArrayList<Address> m_From;
@@ -31,10 +28,9 @@ public class SmtpStoreMessage implements Runnable {
     private ArrayList<Address> m_MailFrom;
     private ArrayList<Address> m_RcptTo;
 
-    public SmtpStoreMessage(SmtpSessionInfo sessionInfo, String message, ArrayList<Address> from, ArrayList<SmtpServerSessionData.Rcpt> to) {
+    public SmtpStoreMessage(String message, ArrayList<Address> from, ArrayList<SmtpServerSessionData.Rcpt> to) {
         super();
 
-        m_SessionInfo = sessionInfo;
         m_Logger = new Logger("ProcessMessage");
 
         m_Message = message;
@@ -98,13 +94,6 @@ public class SmtpStoreMessage implements Runnable {
         }
 
         return false;
-    }
-
-    private void prepareMessage() {
-
-        // Creates the custom headers to be added to the final body
-        Received received = new Received(m_SessionInfo.getRemoteAddress(), m_SessionInfo.getGreetingHostname(),
-                m_SessionInfo.getSessionProtocol(), new Date());
     }
 
     @Override

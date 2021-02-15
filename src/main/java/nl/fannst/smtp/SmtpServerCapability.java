@@ -1,4 +1,4 @@
-package nl.fannst.smtp.server;
+package nl.fannst.smtp;
 
 import java.util.Arrays;
 

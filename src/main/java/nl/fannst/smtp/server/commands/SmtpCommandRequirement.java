@@ -1,7 +1,7 @@
 package nl.fannst.smtp.server.commands;
 
 import nl.fannst.smtp.SmtpCommand;
-import nl.fannst.smtp.server.SmtpServerSession;
+import nl.fannst.smtp.server.session.SmtpServerSession;
 
 public class SmtpCommandRequirement {
     public static void requireEhloHelo(SmtpServerSession session) throws SmtpCommand.SequenceException {

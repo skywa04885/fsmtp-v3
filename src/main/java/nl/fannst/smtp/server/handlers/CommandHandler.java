@@ -3,7 +3,7 @@ package nl.fannst.smtp.server.handlers;
 import nl.fannst.net.NIOClientWrapperArgument;
 import nl.fannst.smtp.SmtpCommand;
 import nl.fannst.smtp.SmtpReply;
-import nl.fannst.smtp.server.SmtpServerSession;
+import nl.fannst.smtp.server.session.SmtpServerSession;
 import nl.fannst.smtp.server.commands.SmtpCommandEvent;
 
 import java.io.IOException;
@@ -11,14 +11,15 @@ import java.io.IOException;
 public class CommandHandler {
     /**
      * Handles an command which has been sent by the client
+     *
      * @param client the client
      * @param session the session
      * @param line the line containing command
      */
-    public static void handleCommand(NIOClientWrapperArgument client, SmtpServerSession session, String line) throws IOException {
+    public static void handle(NIOClientWrapperArgument client, SmtpServerSession session, String line) throws IOException {
         try {
-//            System.out.println("IN -> " + line.trim());
-            SmtpCommand command = new SmtpCommand(line.trim());
+            // Attempts to parse the command, otherwise catch exception on the outside.
+            SmtpCommand command = SmtpCommand.parse(line.trim());
 
             // Gets the event based on the type of command, if there is no
             //  event registered, send this to the client.

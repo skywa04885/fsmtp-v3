@@ -1,11 +1,12 @@
-package nl.fannst.smtp.server;
+package nl.fannst.smtp.server.session;
 
-import nl.fannst.datatypes.SegmentedBuffer;
+import nl.fannst.mime.Address;
 import nl.fannst.models.accounts.BasicAccount;
-import nl.fannst.models.mail.Message;
 import nl.fannst.smtp.MessageProcessor;
+import nl.fannst.smtp.server.SmtpStoreMessage;
 
 import java.net.InetAddress;
+import java.util.ArrayList;
 
 public class SmtpServerSession {
     public static final byte s_HeloEhloFlag = (1);
@@ -68,7 +69,13 @@ public class SmtpServerSession {
         MessageProcessor messageProcessor = new MessageProcessor(m_SessionData.getMessageBody().toString(),
                 m_GreetingHostname, m_SessionData.getMailFrom().get(0), remoteAddress);
 
-        if (!messageProcessor.process()) return false;
+        if (!messageProcessor.validate(m_AuthenticatedUser != null)) return false;
+
+        new Thread(new SmtpStoreMessage(
+                messageProcessor.build(),
+                (ArrayList<Address>) m_SessionData.getMailFrom().clone(),
+                (ArrayList<SmtpServerSessionData.Rcpt>) m_SessionData.getRcptTo().clone()
+        )).start();
 
         return true;
     }

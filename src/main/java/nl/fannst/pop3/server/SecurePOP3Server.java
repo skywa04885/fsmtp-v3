@@ -1,5 +1,6 @@
 package nl.fannst.pop3.server;
 
+import nl.fannst.Logger;
 import nl.fannst.net.NIOClientWrapper;
 import nl.fannst.net.NIOClientWrapperArgument;
 import nl.fannst.net.secure.NioSSLClientWrapperArgument;
@@ -12,6 +13,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class SecurePOP3Server extends NioSSLServer {
+    private final Logger m_Logger;
+
     /**
      * Creates new NIOSSLServer
      *
@@ -23,6 +26,8 @@ public class SecurePOP3Server extends NioSSLServer {
      */
     public SecurePOP3Server(NioSSLServerConfig config, String protocol, String hostname, short port) throws Exception {
         super(config, protocol, hostname, port);
+
+        m_Logger = new Logger("SecurePOP3Server", Logger.Level.TRACE);
     }
 
     @Override
@@ -33,13 +38,18 @@ public class SecurePOP3Server extends NioSSLServer {
 
     @Override
     protected void onConnect(NioSSLClientWrapperArgument client) throws IOException {
+        if (Logger.allowTrace())
+            m_Logger.log("Client connected: " + client.getSocketChannel().getRemoteAddress() + " ;)");
+
         client.getClientWrapper().attach(new PopServerSession());
         new PopReply(PopReply.Indicator.OK, "Fannst POP3 Secure server ready at "
                 + DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now())).write(client);
     }
 
     @Override
-    protected void onDisconnect(NioSSLClientWrapperArgument client) {
+    protected void onDisconnect(NioSSLClientWrapperArgument client) throws IOException {
+        if (Logger.allowTrace())
+            m_Logger.log("Client disconnected: " + client.getSocketChannel().getRemoteAddress() + " ;(");
 
     }
 }

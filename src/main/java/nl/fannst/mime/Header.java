@@ -2,6 +2,7 @@ package nl.fannst.mime;
 
 import nl.fannst.datatypes.Pair;
 
+import java.awt.datatransfer.StringSelection;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.stream.StreamSupport;
@@ -155,10 +156,39 @@ public class Header {
      ****************************************************/
 
     /**
+     * Splits the headers and body of MIME message
+     *
+     * @param scanner the scanner
+     * @return the headers and body ( headers, body )
+     */
+    public static Pair<String, String> splitHeadersAndBody(Scanner scanner) {
+        StringBuilder headers = new StringBuilder(), body = new StringBuilder();
+
+        boolean atBody = false;
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+
+            if (atBody) {
+                body.append(line).append("\r\n");
+            } else {
+                if (line.trim().isEmpty()) {
+                    atBody = true;
+                    continue;
+                }
+
+                headers.append(line).append("\r\n");
+            }
+        }
+
+        return new Pair<String, String>(headers.toString(), body.toString());
+    }
+
+    /**
      * Parses the headers from a MIME message
+     *
      * @param scanner the scanner to read from
      * @return the parsed & joined headers
-     * @throws Header.InvalidHeaderException
+     * @throws Header.InvalidHeaderException possible invalid header
      */
     public static ArrayList<Header> parseHeaders(Scanner scanner) throws Header.InvalidHeaderException {
         ArrayList<Header> result = new ArrayList<Header>();

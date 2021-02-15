@@ -2,7 +2,7 @@ package nl.fannst.smtp.server.commands.chunking;
 
 import nl.fannst.net.NIOClientWrapperArgument;
 import nl.fannst.smtp.SmtpCommand;
-import nl.fannst.smtp.server.SmtpServerSession;
+import nl.fannst.smtp.server.session.SmtpServerSession;
 import nl.fannst.smtp.server.commands.SmtpCommandHandler;
 import nl.fannst.smtp.server.commands.SmtpCommandRequirement;
 

@@ -4,6 +4,7 @@ import nl.fannst.Logger;
 import nl.fannst.net.plain.PlainNIOClientArgument;
 import nl.fannst.net.plain.PlainNIOServer;
 import nl.fannst.smtp.SmtpReply;
+import nl.fannst.smtp.server.session.SmtpServerSession;
 
 import java.io.IOException;
 import java.time.LocalDateTime;

@@ -1,10 +1,10 @@
 package nl.fannst.smtp.headers;
 
 import nl.fannst.Globals;
-import nl.fannst.mime.Address;
-import nl.fannst.smtp.server.SmtpSessionProtocol;
+import nl.fannst.smtp.server.session.SmtpSessionProtocol;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Date;
 
 public class Received {
@@ -24,17 +24,23 @@ public class Received {
 
     @Override
     public String toString() {
-        StringBuilder stringBuilder = new StringBuilder();
+        try {
+            String hostname = InetAddress.getLocalHost().getHostName();
 
-        // Creates the from field
-        stringBuilder.append("from").append(' ').append(m_FromButNotSure).append(" (").append(m_From.getHostName())
-                .append(" [").append(m_From.getHostAddress()).append(']').append(") ");
+            StringBuilder stringBuilder = new StringBuilder();
 
-        // Creates the by field
-        stringBuilder.append("by ").append(Globals.HOSTNAME).append(" with ").append(m_Protocol.getKeyword());
+            // Creates the from field
+            stringBuilder.append("from").append(' ').append(m_FromButNotSure).append(" (").append(m_From.getHostName())
+                    .append(" [").append(m_From.getHostAddress()).append(']').append(") ");
 
-        // Adds the date
-        stringBuilder.append("; ").append(Globals.MIME_DATE_FORMAT.format(m_Date));
-        return stringBuilder.toString();
+            // Creates the by field
+            stringBuilder.append("by ").append(hostname).append(" with ").append(m_Protocol.getKeyword());
+
+            // Adds the date
+            stringBuilder.append("; ").append(Globals.MIME_DATE_FORMAT.format(m_Date));
+            return stringBuilder.toString();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException("Failed to get our own hostname!");
+        }
     }
 }

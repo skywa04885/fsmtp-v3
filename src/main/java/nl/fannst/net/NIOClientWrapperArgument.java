@@ -6,6 +6,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class NIOClientWrapperArgument {
+    /****************************************************
+     * Classy Stuff
+     ****************************************************/
+
     protected final SelectionKey m_SelectionKey;
     protected final NIOClientWrapper m_ClientWrapper;
 
@@ -14,13 +18,9 @@ public class NIOClientWrapperArgument {
         m_ClientWrapper = clientWrapper;
     }
 
-    public SelectionKey getSelectionKey() {
-        return m_SelectionKey;
-    }
-
-    public NIOClientWrapper getClientWrapper() {
-        return m_ClientWrapper;
-    }
+    /****************************************************
+     * Instance Methods
+     ****************************************************/
 
     public void write(String data) throws ClosedChannelException {
         m_ClientWrapper.write(m_SelectionKey, data);
@@ -28,6 +28,18 @@ public class NIOClientWrapperArgument {
 
     public void write(ByteBuffer buffer) throws ClosedChannelException {
         m_ClientWrapper.write(m_SelectionKey, buffer);
+    }
+
+    /****************************************************
+     * Getters / Setters
+     ****************************************************/
+
+    public SelectionKey getSelectionKey() {
+        return m_SelectionKey;
+    }
+
+    public NIOClientWrapper getClientWrapper() {
+        return m_ClientWrapper;
     }
 
     public SocketChannel getSocketChannel() {

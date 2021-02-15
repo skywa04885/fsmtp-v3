@@ -53,7 +53,7 @@ public class SmtpClient extends PlainNIOClient {
      ****************************************************/
 
     @Override
-    protected void onServerConnected(PlainNIOClientArgument client) {
+    protected void onConnect(PlainNIOClientArgument client) {
         SmtpClientSession session = (SmtpClientSession) client.getClientWrapper().attachment();
 
         // Adds the greet transaction, and sets the executed index to one
@@ -63,9 +63,7 @@ public class SmtpClient extends PlainNIOClient {
     }
 
     @Override
-    protected void onServerDataChunk(PlainNIOClientArgument client, byte[] data) {
-        super.onServerDataChunk(client, data);
-
+    protected void onData(PlainNIOClientArgument client) {
         PlainNIOClientWrapper clientWrapper = (PlainNIOClientWrapper) client.getClientWrapper();
         SmtpClientSession session = (SmtpClientSession) clientWrapper.attachment();
 

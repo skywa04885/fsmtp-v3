@@ -10,6 +10,13 @@ import nl.fannst.pop3.server.commands.PopCommandEvent;
 import java.io.IOException;
 
 public class POP3Server {
+    /**
+     * Gets called once a command is available
+     *
+     * @param session the pop3 session
+     * @param client the client
+     * @throws IOException possible IO exception
+     */
     public static void handleCommand(PopServerSession session, NIOClientWrapperArgument client) throws IOException {
         try {
             String raw = client.getClientWrapper().getSegmentedBuffer().read();
@@ -30,6 +37,13 @@ public class POP3Server {
         }
     }
 
+    /**
+     * Gets called when there is data available
+     *
+     * @param session the session
+     * @param client the client
+     * @throws IOException possible IO exception
+     */
     public static void handleData(PopServerSession session, NIOClientWrapperArgument client) throws IOException {
         SegmentedBuffer segmentedBuffer = client.getClientWrapper().getSegmentedBuffer();
 

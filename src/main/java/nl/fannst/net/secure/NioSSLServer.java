@@ -335,5 +335,5 @@ public abstract class NioSSLServer extends SSLNioPeer {
 
     protected abstract void onData(NioSSLClientWrapperArgument client) throws IOException;
     protected abstract void onConnect(NioSSLClientWrapperArgument client) throws IOException;
-    protected abstract void onDisconnect(NioSSLClientWrapperArgument client);
+    protected abstract void onDisconnect(NioSSLClientWrapperArgument client) throws IOException;
 }

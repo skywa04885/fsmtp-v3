@@ -1,28 +1,23 @@
 package nl.fannst.net.plain;
 
+import nl.fannst.Logger;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-public class PlainNIOClient {
-    private static class ChangeRequest {
-        public static int REGISTER = 0;
-
+public abstract class PlainNIOClient {
+    private static class QueuedRegister {
         private final SocketChannel m_SocketChannel;
-        private final int m_Type;
-        private final int m_KeyOperation;
+
         private final Object m_Attachment;
 
-        public ChangeRequest(SocketChannel socketChannel, int type, int keyOperation, Object attachment) {
+        public QueuedRegister(SocketChannel socketChannel, Object attachment) {
             m_SocketChannel = socketChannel;
-            m_Type = type;
-            m_KeyOperation = keyOperation;
             m_Attachment = attachment;
         }
 
@@ -30,18 +25,10 @@ public class PlainNIOClient {
             return m_SocketChannel;
         }
 
-        public Object attachment() {
+        public Object getAttachment() {
             return m_Attachment;
         }
-
-        public int getType() {
-            return m_Type;
-        }
-
-        public int getKeyOperation() {
-            return m_KeyOperation;
-        }
-}
+    }
 
     /****************************************************
      * Classy Stuff
@@ -49,34 +36,69 @@ public class PlainNIOClient {
 
     protected final Selector m_Selector;
     protected final ByteBuffer m_ReadBuffer;
-    protected final LinkedList<ChangeRequest> m_ChangeRequests;
+    protected final LinkedList<QueuedRegister> m_QueuedRegisters;
 
+    protected final Logger m_Logger;
+
+    /**
+     * Creates new PlainNIOClient instance
+     *
+     * @throws IOException possible IO exception
+     */
     public PlainNIOClient() throws IOException {
         m_Selector = Selector.open();
         m_ReadBuffer = ByteBuffer.allocate(1024);
-        m_ChangeRequests = new LinkedList<ChangeRequest>();
+        m_QueuedRegisters = new LinkedList<QueuedRegister>();
+
+        m_Logger = new Logger("PlainNIOClient", Logger.Level.TRACE);
 
         new Thread(this::task).start();
     }
 
     /****************************************************
-     * Key Events
+     * Server Methods
      ****************************************************/
 
+    /**
+     * Closes an socket, and cancels the key
+     *
+     * @param key the key to cancel
+     * @throws IOException the possible exception
+     */
+    private void close(SelectionKey key) throws IOException {
+        assert key.channel() instanceof SocketChannel;
+
+        close((SocketChannel) key.channel());
+        key.cancel();
+    }
+
+    /**
+     * Closes an socket channel
+     *
+     * @param socketChannel the socket channel
+     * @throws IOException the IO exception
+     */
+    private void close(SocketChannel socketChannel) throws IOException {
+        socketChannel.close();
+    }
+
+    /**
+     * Gets called once a key is connectable
+     *
+     * @param key the key
+     * @throws Exception possible IO exception
+     */
     private void onKeyConnectable(SelectionKey key) throws Exception {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         PlainNIOClientWrapper clientWrapper = (PlainNIOClientWrapper) key.attachment();
-
-        System.out.println(clientWrapper.attachment());
-
 
         // Attempts to finish the connection, if this fails
         //  we log the error, and cancel the key.
         try {
             socketChannel.finishConnect();
         } catch (IOException e) {
-            e.printStackTrace();
-            key.cancel();
+            if (Logger.allowTrace()) e.printStackTrace();
+            close(key);
             return;
         }
 
@@ -84,91 +106,108 @@ public class PlainNIOClient {
         clientWrapper.setInterestOp(key, SelectionKey.OP_READ);
 
         // Calls the callback
-        onServerConnected(new PlainNIOClientArgument(key, clientWrapper));
+        onConnect(new PlainNIOClientArgument(key, clientWrapper));
     }
 
+    /**
+     * Gets called once a key is readable.
+     *
+     * @param key the key
+     * @throws IOException possible IO exception
+     */
     private void onKeyReadable(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
-        PlainNIOClientWrapper clientWrapper = (PlainNIOClientWrapper) key.attachment();
+        PlainNIOClientWrapper client = (PlainNIOClientWrapper) key.attachment();
 
         int len;
         try {
+            // Clears the buffer, and reads the initial chunk of data.
+            m_ReadBuffer.clear();
             len = socketChannel.read(m_ReadBuffer);
 
+            // Check if there was anything read, if not just proceed, else enter
+            //  the read loop.
             if (len > 0) {
                 do {
+                    // Copies the received data to an byte array, so we later can turn
+                    //  it into an string.
                     byte[] data = new byte[len];
                     System.arraycopy(m_ReadBuffer.array(), 0, data, 0, len);
-                    onServerDataChunk(new PlainNIOClientArgument(key, clientWrapper), data);
 
+                    // Adds the current read data to the segmented buffer.
+                    client.getSegmentedBuffer().add(new String(data));
+
+                    // Clear the read buffer, and reads the next chunk of data, if available.
                     m_ReadBuffer.clear();
                     len = socketChannel.read(m_ReadBuffer);
                 } while (len > 0);
             }
 
         } catch (IOException e) {
-            socketChannel.close();
-            key.channel();
+            close(key);
             return;
         }
 
-        if (len == -1) {
-            socketChannel.close();
-            key.cancel();
-            return;
-        }
-
-        m_ReadBuffer.clear();
+        // If there was an EOF, close the client socket, else we will
+        //  call the on data callback.
+        if (len == -1) close(key);
+        else onData(new PlainNIOClientArgument(key, client));
     }
 
+    /**
+     * Gets called once a key is writable
+     *
+     * @param key the key
+     * @throws IOException possible IO exception
+     */
     private void onKeyWritable(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         PlainNIOClientWrapper clientWrapper = (PlainNIOClientWrapper) key.attachment();
 
+        // Loops over all the pending writes, and writes them to
+        //  the socket channel.
         LinkedList<ByteBuffer> pendingWrites = clientWrapper.getPendingWrites();
         while (!pendingWrites.isEmpty()) {
+            // Gets the pending write, and writes it to the
+            //  client socket channel.
             ByteBuffer byteBuffer = pendingWrites.get(0);
             socketChannel.write(byteBuffer);
 
-            if (byteBuffer.remaining() > 0) {
-                break;
-            }
-
-            pendingWrites.remove(0);
+            // If more data in buffer, break to prevent block the loop
+            //  else remove the empty buffer.
+            if (byteBuffer.remaining() > 0) break;
+            else pendingWrites.remove(0);
         }
 
         // If there is no further pending writes, tell NIO that
         //  we're listening for data again.
-        if (pendingWrites.isEmpty()) {
-            clientWrapper.setInterestOp(key, SelectionKey.OP_READ);
-        }
+        if (pendingWrites.isEmpty()) clientWrapper.setInterestOp(key, SelectionKey.OP_READ);
 
         // Checks if the client should close, if so.. Close
-        if (clientWrapper.getShouldClose()) {
-            socketChannel.close();
-            key.channel();
-        }
+        if (clientWrapper.getShouldClose()) close(key);
     }
 
     /****************************************************
      * Socket Events
      ****************************************************/
 
-    protected void onServerConnected(PlainNIOClientArgument client) {
-
-    }
-
-    protected void onServerDataChunk(PlainNIOClientArgument client, byte[] data) {
-        client.getClientWrapper().getSegmentedBuffer().add(new String(data));
-    }
+    protected abstract void onConnect(PlainNIOClientArgument client);
+    protected abstract void onData(PlainNIOClientArgument client);
 
     /****************************************************
      * Instance Methods
      ****************************************************/
 
+    /**
+     * Registers an new client in the event loop
+     *
+     * @param socketChannel the socket channel to register
+     * @param attachment the attachment
+     */
     protected void register(SocketChannel socketChannel, Object attachment) {
-        synchronized (m_ChangeRequests) {
-            m_ChangeRequests.add(new ChangeRequest(socketChannel, ChangeRequest.REGISTER, SelectionKey.OP_CONNECT, new PlainNIOClientWrapper(socketChannel, attachment)));
+        synchronized (m_QueuedRegisters) {
+            PlainNIOClientWrapper client = new PlainNIOClientWrapper(socketChannel, attachment);
+            m_QueuedRegisters.add(new QueuedRegister(socketChannel, client));
         }
     }
 
@@ -184,27 +223,25 @@ public class PlainNIOClient {
             try {
                 // Performs some atomic checks on the change requests, if there are any
                 //  perform them, and than clear the change request list.
-                synchronized (m_ChangeRequests) {
-                    for (ChangeRequest changeRequest : m_ChangeRequests) {
-                        if (changeRequest.getType() == ChangeRequest.REGISTER) {
-                            changeRequest.getSocketChannel().register(m_Selector, changeRequest.getKeyOperation(), changeRequest.attachment());
-                        }
-                    }
+                synchronized (m_QueuedRegisters) {
+                    // Loops over all the queued registers, and registers them in the event loop.
+                    for (QueuedRegister changeRequest : m_QueuedRegisters)
+                        changeRequest.getSocketChannel().register(m_Selector, SelectionKey.OP_ACCEPT,
+                                changeRequest.getAttachment());
 
-                    m_ChangeRequests.clear();
+                    // Clears the queued registers.
+                    m_QueuedRegisters.clear();
                 }
 
                 // Perform some selections, in order to check if there
                 //  are any events we need to respond to.
-                if (m_Selector.select(100) == 0) {
-                    continue;
-                }
+                if (m_Selector.select(100) == 0) continue;
 
                 // Starts looping over the selected keys, and calling the appropriate event
                 //  handlers.
                 Iterator<SelectionKey> selectedKeys = m_Selector.selectedKeys().iterator();
                 while (selectedKeys.hasNext()) {
-                    SelectionKey key = (SelectionKey) selectedKeys.next();
+                    SelectionKey key = selectedKeys.next();
                     selectedKeys.remove();
 
                     if (!key.isValid()) {
@@ -221,11 +258,12 @@ public class PlainNIOClient {
                             onKeyWritable(key);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
-                        key.cancel();
+                        if (Logger.allowTrace()) e.printStackTrace();
+                        close(key);
                     }
                 }
             } catch (IOException e) {
+                m_Logger.log("Exception occurred in event loop: " + e.getMessage(), Logger.Level.ERROR);
                 e.printStackTrace();
             }
         }

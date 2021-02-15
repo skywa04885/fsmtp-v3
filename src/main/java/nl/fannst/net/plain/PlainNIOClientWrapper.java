@@ -14,9 +14,7 @@ import java.util.TimerTask;
 
 public class PlainNIOClientWrapper extends NIOClientWrapper {
     public PlainNIOClientWrapper(SocketChannel socketChannel, Object attachment) {
-        super(socketChannel);
-
-        attach(attachment);
+        super(socketChannel, attachment);
     }
 
     public PlainNIOClientWrapper(SocketChannel socketChannel) {

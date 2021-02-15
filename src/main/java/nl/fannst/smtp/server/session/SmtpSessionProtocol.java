@@ -1,4 +1,4 @@
-package nl.fannst.smtp.server;
+package nl.fannst.smtp.server.session;
 
 public enum SmtpSessionProtocol {
     SMTP("SMTP"),

@@ -1,43 +1,55 @@
 package nl.fannst.pop3.server;
 
 import nl.fannst.datatypes.Pair;
-import nl.fannst.datatypes.SegmentedBuffer;
 import nl.fannst.models.accounts.BasicAccount;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.UUID;
 
 public class PopServerSession {
+    /****************************************************
+     * Data Types
+     ****************************************************/
+
     public static enum State {
         AUTHORIZATION, AUTHENTICATED
     }
 
+    /****************************************************
+     * Classy Stuff
+     ****************************************************/
+
     private PrivateKey m_DecryptionKey;
     private State m_State;
 
-    /* Authentication */
     private BasicAccount m_User;
 
-    /* Messages */
+    private final ArrayList<UUID> m_DeletionMarkedMessages;
     private ArrayList<Pair<UUID, Integer>> m_Messages;
-    private ArrayList<UUID> m_DeleteMarkedMessages;
     private int m_HighestAccessNumber;
 
+    /**
+     * Creates new POP3 session instance
+     */
     public PopServerSession() {
         m_State = State.AUTHORIZATION;
         m_HighestAccessNumber = 1;
-        m_DeleteMarkedMessages = new ArrayList<UUID>();
+        m_DeletionMarkedMessages = new ArrayList<UUID>();
     }
 
+    /****************************************************
+     * Instance Methods
+     ****************************************************/
 
     public void reset() {
-        m_DeleteMarkedMessages.clear();
+        m_DeletionMarkedMessages.clear();
         m_HighestAccessNumber = 1;
     }
+
+    /****************************************************
+     * Getters / Setters
+     ****************************************************/
 
     public PrivateKey getDecryptionKey() {
         return m_DecryptionKey;
@@ -80,10 +92,10 @@ public class PopServerSession {
     }
 
     public void addDeleteMarkedMessage(UUID uuid) {
-        m_DeleteMarkedMessages.add(uuid);
+        m_DeletionMarkedMessages.add(uuid);
     }
 
     public ArrayList<UUID> getDeleteMarkedMessages() {
-        return m_DeleteMarkedMessages;
+        return m_DeletionMarkedMessages;
     }
 }

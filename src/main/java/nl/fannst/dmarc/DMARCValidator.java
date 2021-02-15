@@ -99,6 +99,7 @@ public class DMARCValidator {
             case QUARANTINE:{
                 if (spfResult == SPFResult.Rejected && dkimResult == DKIMResult.REJECTED) {
                     if (new Random().nextInt(100) > dmarcRecord.getPercentage()) {
+                        m_Feedback = "rejected, but passed percentage.";
                         return DMARCResult.PASS;
                     }
 

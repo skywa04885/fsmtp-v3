@@ -6,6 +6,7 @@ import nl.fannst.net.secure.NioSSLClientWrapperArgument;
 import nl.fannst.net.secure.NioSSLServer;
 import nl.fannst.net.secure.NioSSLServerConfig;
 import nl.fannst.smtp.SmtpReply;
+import nl.fannst.smtp.server.session.SmtpServerSession;
 
 import java.io.IOException;
 import java.time.LocalDateTime;

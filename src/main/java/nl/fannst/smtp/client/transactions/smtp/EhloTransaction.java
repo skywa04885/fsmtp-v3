@@ -8,7 +8,7 @@ import nl.fannst.smtp.client.SmtpClientSession;
 import nl.fannst.smtp.client.transactions.CommandTransaction;
 import nl.fannst.smtp.client.transactions.TransactionQueue;
 import nl.fannst.smtp.client.transactions.chunking.BdatTransaction;
-import nl.fannst.smtp.server.SmtpServerCapability;
+import nl.fannst.smtp.SmtpServerCapability;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

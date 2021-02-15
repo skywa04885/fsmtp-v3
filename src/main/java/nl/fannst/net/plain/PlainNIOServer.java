@@ -11,15 +11,17 @@ import java.nio.channels.SocketChannel;
 import java.util.*;
 
 public abstract class PlainNIOServer {
-    public static final long TIMEOUT = 4 * 60 * 1000; // 4 minutes
+    public static final long TIMEOUT = 10 * 60 * 1000; // 10 minutes
 
     /****************************************************
      * Classy Stuff
      ****************************************************/
 
-    protected ServerSocketChannel m_ServerSocket;
-    protected SelectionKey m_SelectionKey;
-    protected Selector m_Selector;
+    protected final ByteBuffer m_ReadBuffer;
+
+    protected final ServerSocketChannel m_ServerSocket;
+    protected final SelectionKey m_SelectionKey;
+    protected final Selector m_Selector;
 
     protected final HashMap<SocketChannel, PlainNIOClientWrapper> m_ClientWrappers;
 
@@ -32,6 +34,9 @@ public abstract class PlainNIOServer {
      */
     public PlainNIOServer(String hostname, short port) throws IOException {
         assert (hostname != null);
+
+        // Creates the buffers
+        m_ReadBuffer = ByteBuffer.allocate(1024);
 
         // Creates the client wrappers hashmap
         m_ClientWrappers = new HashMap<SocketChannel, PlainNIOClientWrapper>();
@@ -74,112 +79,172 @@ public abstract class PlainNIOServer {
         }, 0,1000);
     }
 
-    /**
-     * Once the client is writable, try to shift out the available data.
-     * @param key the key
-     * @param client the client
-     * @throws IOException possible exception
-     */
-    protected void onClientWritable(SelectionKey key, PlainNIOClientWrapper client) throws IOException {
-        LinkedList<ByteBuffer> pendingWrites = client.getPendingWrites();
-        while (!pendingWrites.isEmpty()) {
-            // Resets the clients timeout
-            client.resetLastEvent();
-
-            // Gets the current buffer to write
-            ByteBuffer byteBuffer = pendingWrites.get(0);
-            client.getSocketChannel().write(byteBuffer);
-
-            if (byteBuffer.remaining() > 0) {
-                break;
-            }
-
-            pendingWrites.remove(0);
-        }
-
-        // If there are no further pending writes, tell NIO that we
-        //  want to read response data again.
-        if (pendingWrites.isEmpty()) {
-            client.setInterestOp(key, SelectionKey.OP_READ);
-        }
-
-        // Checks if the client should close, if so just close
-        //  it.
-        if (client.getShouldClose()) {
-            onDisconnect(new PlainNIOClientArgument(key, client));
-            client.getSocketChannel().close();
-        }
-    }
-
     /****************************************************
      * Server Stuff
      ****************************************************/
 
     /**
-     * Handles an key
-     * @param key the key
-     * @throws IOException possible exception
+     * Closes an socket, and cancels the key
+     *
+     * @param key the key to cancel
+     * @throws IOException the possible exception
      */
-    private void handleKey(SelectionKey key) throws IOException {
-        if (key.isAcceptable()) {
-            SocketChannel client = m_ServerSocket.accept();
-            client.configureBlocking(false);
-            client.register(m_Selector, SelectionKey.OP_READ);
+    private void close(SelectionKey key) throws IOException {
+        assert key.channel() instanceof SocketChannel;
 
-            // Creates the new client wrapper, and puts it in our
-            //  hashmap.
-            PlainNIOClientWrapper clientWrapper = new PlainNIOClientWrapper(client);
+        close((SocketChannel) key.channel());
+        key.cancel();
+    }
+
+    /**
+     * Closes an socket channel, removes it from the client wrappers, and calls the disconnect callback
+     *
+     * @param socketChannel the socket channel
+     * @throws IOException the IO exception
+     */
+    private void close(SocketChannel socketChannel) throws IOException {
+        synchronized(m_ClientWrappers) {
+            try {
+                onDisconnect(new PlainNIOClientArgument(null, m_ClientWrappers.get(socketChannel)));
+            } catch (Exception ignore) {}
+
+            m_ClientWrappers.remove(socketChannel);
+            socketChannel.close();
+        }
+    }
+
+    /**
+     * Gets called when an key is ready to be accepted
+     *
+     * @param key the key
+     * @throws IOException possible IO exception
+     */
+    private void onIsAcceptable(SelectionKey key) throws IOException {
+        // Accepts the client from the server socket, configures it to
+        //  be non-blocking.
+        SocketChannel client = m_ServerSocket.accept();
+        client.configureBlocking(false);
+
+        // Creates the new client wrapper, puts it in the hashmap ( used for timeouts )
+        //  and sets the operation to read,
+        PlainNIOClientWrapper clientWrapper = new PlainNIOClientWrapper(client);
+        clientWrapper.setInterestOp(key, SelectionKey.OP_READ);
+
+        synchronized (m_ClientWrappers) {
             m_ClientWrappers.put(client, clientWrapper);
+        }
 
-            onConnect(new PlainNIOClientArgument(key, clientWrapper));
-        } else if (key.isReadable()) {
-            SocketChannel client = (SocketChannel) key.channel();
-            if (!client.isOpen()) {
-                key.cancel();
-                return;
-            }
+        // Calls the connect event
+        onConnect(new PlainNIOClientArgument(key, clientWrapper));
+    }
 
-            PlainNIOClientWrapper clientWrapper = m_ClientWrappers.get(client);
+    /**
+     * Gets called when key readable
+     *
+     * @param key the selection key
+     * @throws IOException possible IO exception
+     */
+    private void onIsReadable(SelectionKey key) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) key.channel();
 
-            // Allocates an buffer to store the received data in
-            ByteBuffer buffer = ByteBuffer.allocate(512);
+        if (!socketChannel.isOpen()) {
+            close(key);
+            return;
+        }
+
+        synchronized (m_ClientWrappers) {
+            PlainNIOClientWrapper clientWrapper = m_ClientWrappers.get(socketChannel);
 
             // Stays in loop while there is more data available to be read
             //  since NIO will not notice another time if it is still there.
             int len;
             try {
-                len = client.read(buffer);
+                m_ReadBuffer.clear();
+
+                // Resets the last event, and reads the first set of bytes.
+                clientWrapper.resetLastEvent();
+                len = socketChannel.read(m_ReadBuffer);
+
+                // If there are more bytes left, read them too.
                 if (len > 0) {
                     do {
                         byte[] bytes = new byte[len];
-                        System.arraycopy(buffer.array(), 0, bytes, 0, len);
+                        System.arraycopy(m_ReadBuffer.array(), 0, bytes, 0, len);
 
+                        // Resets the last event, and adds the currently received
+                        //  string to the segmented buffers.
                         clientWrapper.resetLastEvent();
                         clientWrapper.getSegmentedBuffer().add(new String(bytes));
 
-                        buffer.clear();
-                        len = client.read(buffer);
+                        m_ReadBuffer.clear();
+                        len = socketChannel.read(m_ReadBuffer);
                     } while (len > 0);
                 }
             } catch (SocketException e) {
-                client.close();
+                close(key);
                 return;
             }
 
-            // Checks if the client has an error, if so close the connection.
-            if (len == -1) {
-                onDisconnect(new PlainNIOClientArgument(key, clientWrapper));
-                client.close();
-            } else {
-                clientWrapper.resetLastEvent();
-                onData(new PlainNIOClientArgument(key, clientWrapper));
-            }
-        } else if (key.isWritable()) {
-            SocketChannel client = (SocketChannel) key.channel();
-            PlainNIOClientWrapper clientWrapper = m_ClientWrappers.get(client);
+            // If we've reached an EOF, close the socket, else call
+            //  the on data event.
+            if (len == -1) close(key);
+            else onData(new PlainNIOClientArgument(key, clientWrapper));
+        }
+    }
 
-            // Calls the client writable event
-            onClientWritable(key, clientWrapper);
+    /**
+     * Once the client is writable, try to shift out the available data.
+     *
+     * @param key the key
+     * @throws IOException possible exception
+     */
+    protected void onClientWritable(SelectionKey key) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) key.channel();
+
+        if (!socketChannel.isOpen()) {
+            close(key);
+            return;
+        }
+
+        synchronized (m_ClientWrappers) {
+            PlainNIOClientWrapper client = m_ClientWrappers.get(socketChannel);
+
+            // Gets all the pending writes, and stays in loop while there are more available.
+            LinkedList<ByteBuffer> pendingWrites = client.getPendingWrites();
+            while (!pendingWrites.isEmpty()) {
+                ByteBuffer byteBuffer = pendingWrites.get(0);
+
+                // Writes the data to the socket channel, and resets the client timeout.
+                client.getSocketChannel().write(byteBuffer);
+                client.resetLastEvent();
+
+                // If there is more data in the buffer, break to prevent freeze of thread
+                //  else remove the empty buffer.
+                if (byteBuffer.remaining() > 0) break;
+                else pendingWrites.remove(0);
+            }
+
+            // If there are no pending writes anymore, tell NIO that we want to read again.
+            if (pendingWrites.isEmpty()) client.setInterestOp(key, SelectionKey.OP_READ);
+
+            // If there is any queued disconnect, perform it now.
+            if (client.getShouldClose()) close(key);
+        }
+    }
+
+    /**
+     * Handles an key
+     *
+     * @param key the key
+     * @throws IOException possible exception
+     */
+    private void handleKey(SelectionKey key) throws IOException {
+        if (key.isAcceptable()) {
+            onIsAcceptable(key);
+        } else if (key.isReadable()) {
+            onIsReadable(key);
+        } else if (key.isWritable()) {
+            onClientWritable(key);
         }
     }
 
@@ -191,34 +256,22 @@ public abstract class PlainNIOServer {
             while (m_ServerSocket.isOpen()) {
                 m_Selector.select();
 
-                // Gets the available keys
                 Set<SelectionKey> keys = m_Selector.selectedKeys();
                 Iterator<SelectionKey> keyIterator = keys.iterator();
 
-                // Loops over the available keys
                 while (keyIterator.hasNext()) {
                     SelectionKey key = keyIterator.next();
                     keyIterator.remove();
 
-                    // If key not valid, cancel
                     if (!key.isValid()) {
                         key.cancel();
                         continue;
                     }
 
-                    // Handles the key, and catches any exception
-                    //  to prevent the server from crashing
                     try {
                         handleKey(key);
                     } catch (Exception e) {
                         e.printStackTrace();
-                    }
-
-                    // Checks if the client has closed connection, if so remove
-                    //  it from the wrappers hashmap.
-                    if (!key.channel().isOpen() && key.channel() instanceof SocketChannel) {
-                        SocketChannel socketChannel = (SocketChannel) key.channel();
-                        m_ClientWrappers.remove(socketChannel);
                     }
                 }
             }
@@ -233,5 +286,5 @@ public abstract class PlainNIOServer {
 
     protected abstract void onData(PlainNIOClientArgument client) throws IOException;
     protected abstract void onConnect(PlainNIOClientArgument client) throws IOException;
-    protected abstract void onDisconnect(PlainNIOClientArgument client);
+    protected abstract void onDisconnect(PlainNIOClientArgument client) throws IOException;
 }

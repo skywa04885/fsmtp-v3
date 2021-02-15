@@ -1,14 +1,18 @@
 package nl.fannst;
 
+import nl.fannst.mime.Address;
 import nl.fannst.net.secure.NioSSLServerConfig;
 import nl.fannst.pop3.server.PlainTextPOP3Server;
 import nl.fannst.pop3.server.SecurePOP3Server;
+import nl.fannst.smtp.MessageProcessor;
 import nl.fannst.smtp.client.SmtpClient;
 import nl.fannst.smtp.server.PlainTextSMTPServer;
 import nl.fannst.smtp.server.SecureSMTPServer;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Scanner;
 
 public class Main {
     /* Other config */
@@ -32,19 +36,6 @@ public class Main {
      * @throws Exception possible exception which may occur.
      */
     public static void main(String[] args) throws Exception {
-//
-//        File file = new File("./test/mime/gmail.txt");
-//        Scanner scanner = new Scanner(file);
-//        StringBuilder result = new StringBuilder();
-//        while (scanner.hasNextLine()) {
-//            result.append(scanner.nextLine()).append("\r\n");
-//        }
-//
-//        String resultString = result.toString();
-//        MessageProcessor messageProcessor = new MessageProcessor(resultString, "we-guess-mozzilla.org", new Address("luke.rieff@gmail.com", null), InetAddress.getLocalHost());
-//        messageProcessor.process();
-//        System.out.println(messageProcessor.build());
-        System.out.println(System.getenv("SERVER_KEY_FILE"));
         m_SSLServerConfig.setServerKeyFile(System.getenv("SERVER_KEY_FILE"));
         m_SSLServerConfig.setServerKeyPass(System.getenv("SERVER_KEY_PASS"));
         m_SSLServerConfig.setServerStorePass(System.getenv("SERVER_STORE_PASS"));
@@ -67,12 +58,6 @@ public class Main {
     }
 
     private static void prepare() {
-        try {
-            Globals.HOSTNAME = InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         DatabaseConnection.connect("mongodb://fannst.nl:27017/fannst", "fannst");
     }
 

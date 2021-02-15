@@ -1,4 +1,4 @@
-package nl.fannst.smtp.server;
+package nl.fannst.smtp.server.session;
 
 import nl.fannst.mime.Address;
 import nl.fannst.models.accounts.BasicAccount;

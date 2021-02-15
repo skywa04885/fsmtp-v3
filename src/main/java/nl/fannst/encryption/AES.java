@@ -31,6 +31,7 @@ public class AES {
 
     /**
      * Generates an AES key
+     *
      * @return the key generated
      */
     public static SecretKey generateKey() {
@@ -44,6 +45,14 @@ public class AES {
         }
     }
 
+    /**
+     * Encrypts the specified data using AES
+     *
+     * @param data the data
+     * @param secretKey the secret key
+     * @param iv the IV
+     * @return encrypted data
+     */
     public static byte[] encrypt(byte[] data, SecretKey secretKey, byte[] iv)
     {
         try {
@@ -57,6 +66,13 @@ public class AES {
         }
     }
 
+    /**
+     * Encrypts the specified data using AES and adds the IV.
+     *
+     * @param data the data
+     * @param secretKey the secret key
+     * @return the encrypted data + IV
+     */
     public static byte[] easyEncrypt(byte[] data, SecretKey secretKey)
     {
         byte[] iv = getRandomNonce();
@@ -69,6 +85,14 @@ public class AES {
                 .array();
     }
 
+    /**
+     * Decrypts the specified data using AES
+     *
+     * @param cipherText the cipher text
+     * @param secretKey the secret key
+     * @param iv the iv
+     * @return the decrypted data
+     */
     public static byte[] decrypt(byte[] cipherText, SecretKey secretKey, byte[] iv)
     {
         // Decrypts

@@ -11,9 +11,12 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import java.util.ArrayList;
-import java.util.List;
 
 public class DNS {
+    /****************************************************
+     * Data Types
+     ****************************************************/
+
     public static class MXRecord implements Comparable<MXRecord> {
         private final String m_Value;
         private final int m_Priority;
@@ -37,8 +40,13 @@ public class DNS {
         }
     }
 
+    /****************************************************
+     * Static Methods
+     ****************************************************/
+
     /**
      * Gets the MX records from domain
+     *
      * @param domainName the domain name
      * @return the list of MX records
      */
@@ -67,6 +75,13 @@ public class DNS {
         return records;
     }
 
+    /**
+     * Gets all DMARC records from specified domain
+     *
+     * @param domain the domain to get records from
+     * @return the parsed records
+     * @throws NamingException if domain does not exist
+     */
     public static ArrayList<DMARCRecord> getDMARCRecords(String domain) throws NamingException {
         ArrayList<DMARCRecord> records = new ArrayList<DMARCRecord>();
 
@@ -103,6 +118,13 @@ public class DNS {
         return records;
     }
 
+    /**
+     * Gets all SPF records from domain
+     *
+     * @param domain the domain to get them from
+     * @return the array of SPF records
+     * @throws NamingException if domain not found
+     */
     public static ArrayList<SPFRecord> getSPFRecords(String domain) throws NamingException {
         ArrayList<SPFRecord> records = new ArrayList<SPFRecord>();
 
@@ -139,6 +161,13 @@ public class DNS {
         return records;
     }
 
+    /**
+     * Gets all A records from specified domain
+     *
+     * @param domain the domain to get A records from
+     * @return the list of a records
+     * @throws NamingException if domain not found
+     */
     public static ArrayList<CIDR_IPv4Address> getARecords(String domain) throws NamingException {
         ArrayList<CIDR_IPv4Address> records = new ArrayList<CIDR_IPv4Address>();
 

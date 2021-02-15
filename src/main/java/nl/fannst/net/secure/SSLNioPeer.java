@@ -78,9 +78,18 @@ public abstract class SSLNioPeer {
         }
     }
 
+    /**
+     * Gets called in handshake need wrap
+     *
+     * @param socketChannel the socket channel
+     * @param sslEngine the ssl engine
+     * @return success ?
+     * @throws Exception possible exception
+     */
     protected boolean onNeedWrap(SocketChannel socketChannel, SSLEngine sslEngine) throws Exception {
         m_AppEncryptedData.clear();
 
+        // Attempts to encrypt the app readable data.
         SSLEngineResult result;
         try {
             result = sslEngine.wrap(m_AppReadableData, m_AppEncryptedData);
@@ -90,6 +99,8 @@ public abstract class SSLNioPeer {
             return false;
         }
 
+        // Checks the status, if success write the remaining data to the client socket
+        //  else handle errors accordingly.
         switch (result.getStatus()) {
             case OK -> {
                 m_AppEncryptedData.flip();
@@ -110,15 +121,24 @@ public abstract class SSLNioPeer {
             }
 
             case BUFFER_OVERFLOW -> m_AppEncryptedData = enlargePacketBuffer(sslEngine, m_AppEncryptedData);
-            case BUFFER_UNDERFLOW -> throw new Exception("Underflow occured.");
+            case BUFFER_UNDERFLOW -> throw new Exception("Underflow occurred.");
         }
 
         return true;
     }
 
+    /**
+     * Gets called when an handshake needs unwrap
+     *
+     * @param socketChannel the socket channel
+     * @param sslEngine the ssl engine
+     * @return success ?
+     * @throws IOException possible exception
+     */
     protected boolean onNeedUnwrap(SocketChannel socketChannel, SSLEngine sslEngine) throws IOException {
         m_NetReadableData.clear();
 
+        // Reads the available data from socket channel.
         int len;
         if ((len = socketChannel.read(m_NetEncryptedData)) == -1) {
             if (sslEngine.isInboundDone() && sslEngine.isOutboundDone()) {
@@ -135,6 +155,7 @@ public abstract class SSLNioPeer {
             return false;
         }
 
+        // Attempts to decrypt the read data, if failure close connection.
         SSLEngineResult result;
         try {
             m_NetEncryptedData.flip();
@@ -146,6 +167,7 @@ public abstract class SSLNioPeer {
             return false;
         }
 
+        // Checks the result, and handle errors accordingly.
         switch (result.getStatus()) {
             case OK -> {}
             case BUFFER_OVERFLOW -> m_NetReadableData = enlargeApplicationBuffer(sslEngine, m_NetReadableData);

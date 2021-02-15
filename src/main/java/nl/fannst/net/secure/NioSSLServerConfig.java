@@ -1,6 +1,10 @@
 package nl.fannst.net.secure;
 
 public class NioSSLServerConfig {
+    /****************************************************
+     * Classy Stuff
+     ****************************************************/
+
     private String m_ServerKeyFile;
     private String m_ServerStorePass;
     private String m_ServerKeyPass;
@@ -8,6 +12,9 @@ public class NioSSLServerConfig {
     private String m_TrustFile;
     private String m_TrustStorePass;
 
+    /****************************************************
+     * Getters / Setters
+     ****************************************************/
 
     public void setServerKeyFile(String file) {
         m_ServerKeyFile = file;
@@ -28,7 +35,6 @@ public class NioSSLServerConfig {
     public void setTrustStorePass(String pass) {
         m_TrustStorePass = pass;
     }
-
 
     public String getServerKeyFile() {
         return m_ServerKeyFile;

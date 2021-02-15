@@ -3,8 +3,8 @@ package nl.fannst.smtp.server.commands.smtp;
 import nl.fannst.net.NIOClientWrapperArgument;
 import nl.fannst.smtp.SmtpCommand;
 import nl.fannst.smtp.SmtpReply;
-import nl.fannst.smtp.server.SmtpServerCapability;
-import nl.fannst.smtp.server.SmtpServerSession;
+import nl.fannst.smtp.SmtpServerCapability;
+import nl.fannst.smtp.server.session.SmtpServerSession;
 import nl.fannst.smtp.server.commands.SmtpCommandHandler;
 
 import java.net.InetAddress;
