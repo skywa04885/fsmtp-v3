@@ -208,7 +208,6 @@ public abstract class SSLNioPeer {
 
     protected void closeSocketChannel(SocketChannel socketChannel, SSLEngine sslEngine) throws Exception {
         sslEngine.closeOutbound();
-        performHandshake(socketChannel, sslEngine);
         socketChannel.close();
     }
 

@@ -172,8 +172,13 @@ public abstract class NioSSLServer extends SSLNioPeer {
         sslEngine.setUseClientMode(false);
         sslEngine.beginHandshake();
 
-        // Performs the handshake, if it fails we close the connection.
-        if (!performHandshake(socketChannel, sslEngine)) {
+        try {
+            // Performs the handshake, if it fails we close the connection.
+            if (!performHandshake(socketChannel, sslEngine)) {
+                socketChannel.close();
+                return;
+            }
+        } catch (Exception e) {
             closeSocketChannel(socketChannel, sslEngine);
             key.cancel();
             return;
