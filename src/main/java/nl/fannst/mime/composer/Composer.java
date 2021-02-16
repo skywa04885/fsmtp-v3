@@ -16,10 +16,10 @@ public class Composer {
      * Classy Stuff
      ****************************************************/
 
-    private ArrayList<ComposeSection> m_Sections;
+    private final ArrayList<ComposeSection> m_Sections;
     private ArrayList<Header> m_CustomHeaders;
-    private ArrayList<Address> m_From;
-    private ArrayList<Address> m_To;
+    private final ArrayList<Address> m_From;
+    private final ArrayList<Address> m_To;
     private String m_Subject;
 
     public Composer() {
@@ -32,6 +32,11 @@ public class Composer {
      * Instance Methods
      ****************************************************/
 
+    /**
+     * Composes an MIME message with current config
+     *
+     * @return composed message
+     */
     public String compose() {
         StringBuilder stringBuilder = new StringBuilder();
 
@@ -77,7 +82,6 @@ public class Composer {
      * Static Methods
      ****************************************************/
 
-
     private static final char[] MESSAGE_ID_DICT = {
             'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
             'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
@@ -86,6 +90,7 @@ public class Composer {
 
     /**
      * Generates an messageID
+     *
      * @return the messageID
      */
     public static String generateMessageID() {
@@ -111,6 +116,7 @@ public class Composer {
 
     /**
      * Generates an message boundary
+     *
      * @return the generated boundary
      */
     public static String generateBoundary() {

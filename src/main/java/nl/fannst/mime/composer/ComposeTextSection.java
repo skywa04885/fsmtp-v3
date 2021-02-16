@@ -21,6 +21,11 @@ public class ComposeTextSection extends ComposeSection {
         m_RawBody = body;
     }
 
+    /**
+     * Builds the current text section.
+     *
+     * @return the built section.
+     */
     @Override
     public String build() {
         StringBuilder stringBuilder = new StringBuilder();
