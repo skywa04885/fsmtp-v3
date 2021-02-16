@@ -4,6 +4,7 @@ import nl.fannst.net.plain.PlainNIOClientArgument;
 import nl.fannst.smtp.SmtpCommand;
 import nl.fannst.smtp.SmtpReply;
 import nl.fannst.smtp.client.transactions.CommandTransaction;
+import nl.fannst.smtp.client.transactions.TransactionError;
 import nl.fannst.smtp.client.transactions.TransactionQueue;
 
 import java.io.IOException;
@@ -28,7 +29,12 @@ public class BdatTransaction extends CommandTransaction {
     }
 
     @Override
-    public void onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
+    public boolean onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
+        if (reply.getCode() == 250) {
+            return false;
+        }
 
+        queue.addTransactionError(new TransactionError(getCommand().toString(), reply.toString(false)));
+        return true;
     }
 }

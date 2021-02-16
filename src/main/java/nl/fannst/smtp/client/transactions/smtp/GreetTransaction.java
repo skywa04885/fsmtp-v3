@@ -19,7 +19,7 @@ public class GreetTransaction extends Transaction {
     public void execute(TransactionQueue queue, PlainNIOClientArgument client) throws IOException {}
 
     @Override
-    public void onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
+    public boolean onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
         SmtpClientSession session = (SmtpClientSession) client.getClientWrapper().attachment();
 
         try {
@@ -31,5 +31,7 @@ public class GreetTransaction extends Transaction {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return false;
     }
 }

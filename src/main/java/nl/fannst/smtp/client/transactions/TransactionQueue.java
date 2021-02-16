@@ -14,6 +14,16 @@ public class TransactionQueue {
     public static final byte PIPELINING = (1);
 
     /****************************************************
+     * Data Types
+     ****************************************************/
+
+    public static enum OnReplyRetVal {
+        Success,
+        Failure,
+        Last
+    }
+
+    /****************************************************
      * Classy Stuff
      ****************************************************/
 
@@ -60,12 +70,14 @@ public class TransactionQueue {
      * @return everything done ?
      * @throws Transaction.TransactionException possible error from transaction
      */
-    public boolean onReply(PlainNIOClientArgument client, SmtpReply reply) throws Transaction.TransactionException {
+    public OnReplyRetVal onReply(PlainNIOClientArgument client, SmtpReply reply) throws Transaction.TransactionException {
         Transaction transaction = m_Transactions.get(m_TransactionCompletedIndex++);
         System.out.println("Reply for: " + transaction.getClass().getName());
-        transaction.onReply(this, client, reply);
+        if (transaction.onReply(this, client, reply)) {
+            return OnReplyRetVal.Failure;
+        }
 
-        return m_TransactionCompletedIndex >= m_Transactions.size();
+        return m_TransactionCompletedIndex >= m_Transactions.size() ? OnReplyRetVal.Last : OnReplyRetVal.Success;
     }
 
     /****************************************************

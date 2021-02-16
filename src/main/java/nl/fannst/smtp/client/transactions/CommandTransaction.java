@@ -22,8 +22,8 @@ public class CommandTransaction extends Transaction {
     }
 
     @Override
-    public void onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
-        assert false : "Transaction handler MUST be overwritten.";
+    public boolean onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
+        return false;
     }
 
     public SmtpCommand getCommand() {

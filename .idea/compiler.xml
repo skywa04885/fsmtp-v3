@@ -9,7 +9,7 @@
         <module name="fsmtp-v3" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
+    <bytecodeTargetLevel target="14">
       <module name="fsmtp-v3" target="14" />
     </bytecodeTargetLevel>
   </component>

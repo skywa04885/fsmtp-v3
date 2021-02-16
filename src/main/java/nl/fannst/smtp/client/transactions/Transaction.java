@@ -20,7 +20,7 @@ public class Transaction {
     public void execute(TransactionQueue queue, PlainNIOClientArgument client) throws IOException {
     }
 
-    public void onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
-        assert false : "Transaction handler MUST be overwritten.";
+    public boolean onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
+        return false;
     }
 }

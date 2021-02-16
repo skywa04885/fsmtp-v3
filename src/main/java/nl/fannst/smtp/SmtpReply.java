@@ -313,12 +313,7 @@ public class SmtpReply {
      * Instance Methods
      ****************************************************/
 
-    /**
-     * The override method to create a string version of reply
-     * @return the string version
-     */
-    @Override
-    public String toString() {
+    public String toString(boolean suffix) {
         assert(m_Message != null);
 
         if (m_Lines != null) {
@@ -332,15 +327,24 @@ public class SmtpReply {
         }
 
         // Adds the message length with the suffix after
-        len += m_Message.length() + 1 + s_Suffix.length();
+        len += m_Message.length() + 1 + (suffix ? s_Suffix.length() : 0);
 
         // Builds the message in a wrapped style, if it is too
         //  large for a single line
         if (len > s_MaxLineLength) {
-            return buildWrappedReply(m_Code, m_Message + " - " + s_Suffix);
+            return buildWrappedReply(m_Code, m_Message + (suffix ? " - " + s_Suffix : ""));
         } else {
-            return buildReplyLine(m_Code, m_EnhancedCode, m_Message + " - " + s_Suffix, true);
+            return buildReplyLine(m_Code, m_EnhancedCode, m_Message + (suffix ? " - " + s_Suffix : ""), true);
         }
+    }
+
+    /**
+     * The override method to create a string version of reply
+     * @return the string version
+     */
+    @Override
+    public String toString() {
+        return toString(true);
     }
 
     public void parseAndAppendMessage(String raw) throws SyntaxException {

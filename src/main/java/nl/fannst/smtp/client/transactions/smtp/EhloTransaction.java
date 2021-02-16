@@ -6,6 +6,7 @@ import nl.fannst.smtp.SmtpCommand;
 import nl.fannst.smtp.SmtpReply;
 import nl.fannst.smtp.client.SmtpClientSession;
 import nl.fannst.smtp.client.transactions.CommandTransaction;
+import nl.fannst.smtp.client.transactions.TransactionError;
 import nl.fannst.smtp.client.transactions.TransactionQueue;
 import nl.fannst.smtp.client.transactions.chunking.BdatTransaction;
 import nl.fannst.smtp.SmtpServerCapability;
@@ -29,14 +30,15 @@ public class EhloTransaction extends CommandTransaction {
     }
 
     @Override
-    public void onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
+    public boolean onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
         SmtpClientSession session = (SmtpClientSession) client.getClientWrapper().attachment();
         SmtpClientSession.Capabilities capabilities = session.getCapabilities();
 
         // Checks if the server responded with success, if so
         //  just proceed, else throw error.
         if (reply.getCode() != 250) {
-            throw new TransactionException(reply.getCode(), reply.getMessage());
+            queue.addTransactionError(new TransactionError(getCommand().toString(), reply.toString(false)));
+            return true;
         }
 
         // Creates the scanner and skips the first line, which contains nothing
@@ -64,7 +66,7 @@ public class EhloTransaction extends CommandTransaction {
                         try {
                             capabilities.setMaxSize(Integer.parseInt(serverCapability.getArguments()[0]));
                         } catch (NumberFormatException e) {
-                            return;
+                            break;
                         }
                     }
                     break;
@@ -107,10 +109,10 @@ public class EhloTransaction extends CommandTransaction {
             while (true) {
                 int left = total.length() - end;
 
-                end += Math.min(left, 128);
+                end += Math.min(left, 1024);
 
                 byte[] chunk = total.substring(start, end).getBytes(StandardCharsets.US_ASCII);
-                queue.addTransaction(new BdatTransaction(ByteBuffer.wrap(chunk), left < 128));
+                queue.addTransaction(new BdatTransaction(ByteBuffer.wrap(chunk), left < 1024));
 
                 if (end == total.length()) break;
                 else start = end;
@@ -123,5 +125,7 @@ public class EhloTransaction extends CommandTransaction {
         }
 
         queue.addTransaction(new QuitTransaction());
+
+        return false;
     }
 }

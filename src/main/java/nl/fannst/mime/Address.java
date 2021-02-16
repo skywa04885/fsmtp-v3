@@ -156,6 +156,17 @@ public class Address {
         return address;
     }
 
+    public static String buildAddressList(ArrayList<Address> addresses) {
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < addresses.size(); ++i) {
+            result.append(addresses.get(i).toString());
+            if (i + 1 != addresses.size()) result.append(", ");
+        }
+
+        return result.toString();
+    }
+
     /**
      * Parses an list of addresses
      * @param raw the raw list

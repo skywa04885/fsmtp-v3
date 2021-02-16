@@ -23,7 +23,7 @@ public class DataTransaction extends Transaction {
     }
 
     @Override
-    public void onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
-
+    public boolean onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
+        return false;
     }
 }

@@ -1,18 +1,22 @@
 package nl.fannst;
 
 import nl.fannst.mime.Address;
+import nl.fannst.mime.ContentType;
+import nl.fannst.mime.TransferEncoding;
+import nl.fannst.mime.composer.ComposeTextSection;
+import nl.fannst.mime.composer.Composer;
 import nl.fannst.net.secure.NioSSLServerConfig;
 import nl.fannst.pop3.server.PlainTextPOP3Server;
 import nl.fannst.pop3.server.SecurePOP3Server;
-import nl.fannst.smtp.MessageProcessor;
 import nl.fannst.smtp.client.SmtpClient;
+import nl.fannst.smtp.client.transactions.TransactionError;
 import nl.fannst.smtp.server.PlainTextSMTPServer;
 import nl.fannst.smtp.server.SecureSMTPServer;
+import nl.fannst.templates.FreeWriterRenderer;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class Main {
     /* Other config */
@@ -59,6 +63,12 @@ public class Main {
 
     private static void prepare() {
         DatabaseConnection.connect("mongodb://fannst.nl:27017/fannst", "fannst");
+
+        try {
+            FreeWriterRenderer.createInstance();
+        } catch (IOException e) {
+            m_Logger.log("Failed to create singleton instances: " + e.getMessage(), Logger.Level.FATAL);
+        }
     }
 
     private static void prepareSMTPClient() {
@@ -73,7 +83,7 @@ public class Main {
 
     private static void runSecureSMTP() {
         try {
-            new SecureSMTPServer(m_SSLServerConfig, "TLSv1.2", LISTEN, SMTP_SSL_PORT);
+            new SecureSMTPServer(m_SSLServerConfig, "SSL", LISTEN, SMTP_SSL_PORT);
             m_Logger.log("Secure SMTP instance created!", Logger.Level.INFO);
         } catch (Exception e) {
             m_Logger.log("Failed to create secure SMTP Instance: " + e.getMessage(), Logger.Level.FATAL);
@@ -93,7 +103,7 @@ public class Main {
 
     private static void runSecurePOP3() {
         try {
-            new SecurePOP3Server(m_SSLServerConfig, "TLSv1.2", LISTEN, POP3_SSL_PORT);
+            new SecurePOP3Server(m_SSLServerConfig, "SSL", LISTEN, POP3_SSL_PORT);
             m_Logger.log("Secure POP3 instance created!", Logger.Level.INFO);
         } catch (Exception e) {
             m_Logger.log("Failed to create secure POP3 Instance: " + e.getMessage(), Logger.Level.FATAL);

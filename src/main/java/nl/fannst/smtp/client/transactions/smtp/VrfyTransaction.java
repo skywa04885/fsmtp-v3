@@ -16,13 +16,14 @@ public class VrfyTransaction extends CommandTransaction {
     }
 
     @Override
-    public void onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
+    public boolean onReply(TransactionQueue queue, PlainNIOClientArgument client, SmtpReply reply) throws TransactionException {
         if (reply.getCode() == 252 || reply.getCode() == 250) {
-            return;
+            return false;
         }
 
         // Since an error occurred when specifying the mail from, add it to the
         //  transaction errors array.
-        queue.addTransactionError(new TransactionError(this.getClass().getName(), reply.toString()));
+        queue.addTransactionError(new TransactionError(getCommand().toString(), reply.toString(false)));
+        return false;
     }
 }

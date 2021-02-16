@@ -41,4 +41,8 @@ public enum ContentType {
 
         return null;
     }
+
+    public String withBoundary(String boundary) {
+        return getTypeString() + "; boundary=\"" + boundary + '"';
+    }
 }

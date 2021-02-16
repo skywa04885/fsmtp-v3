@@ -110,6 +110,10 @@ public class Message {
         return m_Headers;
     }
 
+    public String getBody() {
+        return m_Body;
+    }
+
     public void setBody(String body) {
         m_Body = body;
     }

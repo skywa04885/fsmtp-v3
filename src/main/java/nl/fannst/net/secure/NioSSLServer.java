@@ -1,7 +1,6 @@
 package nl.fannst.net.secure;
 
 import nl.fannst.Logger;
-import nl.fannst.net.NIOClientWrapper;
 
 import javax.net.ssl.*;
 import java.io.IOException;
@@ -12,7 +11,7 @@ import java.nio.channels.spi.SelectorProvider;
 import java.security.SecureRandom;
 import java.util.*;
 
-public abstract class NioSSLServer extends SSLNioPeer {
+public abstract class NioSSLServer extends NioSSLPeer {
     public static final long TIMEOUT = 4 * 60 * 1000; /* 4 minutes */
 
     /****************************************************

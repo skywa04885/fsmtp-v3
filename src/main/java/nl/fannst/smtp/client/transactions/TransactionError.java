@@ -22,4 +22,9 @@ public class TransactionError {
     public String getMessage() {
         return m_Message;
     }
+
+    @Override
+    public String toString() {
+        return "" + m_Timestamp + " -> '" + m_TransactionName + "': " + m_Message;
+    }
 }

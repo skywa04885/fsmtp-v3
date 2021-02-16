@@ -11,7 +11,7 @@ import java.security.KeyStore;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public abstract class SSLNioPeer {
+public abstract class NioSSLPeer {
     /****************************************************
      * Classy Stuff
      ****************************************************/

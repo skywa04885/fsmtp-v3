@@ -20,7 +20,7 @@ public class FinishHandler {
             if (session.process(client.getClientWrapper().getSocketChannel().socket().getInetAddress())) return;
 
             // Since processing returned false, send an error message stating that the message got rejected.
-            new SmtpReply(541, SmtpReply.EnhancedStatusCode.classPermanentFailure, "Message rejected.")
+            new SmtpReply(541, SmtpReply.EnhancedStatusCode.classPermanentFailure, "Unauthenticated email from " + session.getGreetingHostname() + " is not accepted due to domain's DMARC policy. Please contact the administrator of domain if this was a legitimate mail.")
                     .write(client);
         } catch (Exception e) {
             new SmtpReply(554, SmtpReply.EnhancedStatusCode.classPermanentFailure,

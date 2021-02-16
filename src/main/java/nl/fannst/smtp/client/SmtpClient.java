@@ -1,13 +1,20 @@
 package nl.fannst.smtp.client;
 
+import nl.fannst.Globals;
 import nl.fannst.Logger;
 import nl.fannst.mime.Address;
+import nl.fannst.mime.ContentType;
+import nl.fannst.mime.TransferEncoding;
+import nl.fannst.mime.composer.ComposeTextSection;
+import nl.fannst.mime.composer.Composer;
 import nl.fannst.net.DNS;
 import nl.fannst.net.plain.PlainNIOClient;
 import nl.fannst.net.plain.PlainNIOClientArgument;
 import nl.fannst.net.plain.PlainNIOClientWrapper;
 import nl.fannst.smtp.SmtpReply;
+import nl.fannst.smtp.client.transactions.TransactionError;
 import nl.fannst.smtp.client.transactions.smtp.*;
+import nl.fannst.templates.FreeWriterRenderer;
 
 import javax.naming.NamingException;
 import java.io.IOException;
@@ -88,8 +95,24 @@ public class SmtpClient extends PlainNIOClient {
 
                 // Executes the on reply handler for the pending transaction, this will return true if it was the last
                 //  one, if not the last, execute the next transaction.
-                if (!session.getTransactionQueue().onReply(client, session.getReply())) {
-                    session.getTransactionQueue().execute(client);
+                switch (session.getTransactionQueue().onReply(client, session.getReply())) {
+                    case Success -> session.getTransactionQueue().execute(client);
+
+                    case Failure -> {
+                        client.close();
+                        sendTransactionError(session);
+                    }
+
+                    case Last -> {
+                        LinkedList<TransactionError> errors = session.getTransactionQueue().getTransactionErrors();
+                        if (errors.size() > 0 && !session.getTask().isFlagSet(SmtpClientTask.IGNORE_ERRORS)) {
+                            try {
+                                sendTransactionError(session);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -97,6 +120,60 @@ public class SmtpClient extends PlainNIOClient {
         }
 
         client.getClientWrapper().getSegmentedBuffer().shift();
+    }
+
+    private void sendPreTransactionError(String title, String message, Address sender) {
+        try {
+            // Builds the MIME Message
+            //
+
+            String body = FreeWriterRenderer.getInstance().renderPreTransactionFailure(title, message, sender);
+
+            Composer composer = new Composer();
+            composer.setSubject("Delivery Failure");
+            composer.addFrom(Globals.DELIVERY_SYSTEM_ADDRESS);
+            composer.addTo(new Address("luke.rieff@gmail.com", "Luke Rieff"));
+            composer.addSection(new ComposeTextSection(TransferEncoding.QUOTED_PRINTABLE, ContentType.TEXT_HTML, body));
+
+            //
+            // Enqueues the message
+            //
+
+            ArrayList<Address> targets = new ArrayList<Address>();
+            targets.add(sender);
+
+            enqueue(new SmtpClientMessage(Globals.DELIVERY_SYSTEM_ADDRESS, targets, composer.compose()),
+                    SmtpClientTask.IGNORE_ERRORS);
+        } catch (Exception e) {
+
+        }
+    }
+
+    private void sendTransactionError(SmtpClientSession session) throws Exception {
+        LinkedList<TransactionError> errors = session.getTransactionQueue().getTransactionErrors();
+        Address sender = session.getTask().getMessage().getSender();
+
+        //
+        // Builds the MIME Message
+        //
+
+        String body = FreeWriterRenderer.getInstance().renderTransactionFailure(errors, sender);
+
+        Composer composer = new Composer();
+        composer.setSubject("Delivery Failure");
+        composer.addFrom(Globals.DELIVERY_SYSTEM_ADDRESS);
+        composer.addTo(sender);
+        composer.addSection(new ComposeTextSection(TransferEncoding.QUOTED_PRINTABLE, ContentType.TEXT_HTML, body));
+
+        //
+        // Enqueues the message
+        //
+
+        ArrayList<Address> targets = new ArrayList<Address>();
+        targets.add(session.getTask().getMessage().getSender());
+
+        enqueue(new SmtpClientMessage(Globals.DELIVERY_SYSTEM_ADDRESS, targets, composer.compose()),
+                SmtpClientTask.IGNORE_ERRORS);
     }
 
     /****************************************************
@@ -116,6 +193,8 @@ public class SmtpClient extends PlainNIOClient {
             mxRecords = DNS.getMXRecords(domain);
             Collections.sort(mxRecords);
         } catch (NamingException e) {
+            sendPreTransactionError("Failed to resolve MX records",
+                    "Could not find any MX records for domain: '" + domain + "'.", task.getMessage().getSender());
             throw new PreTransmissionError("Failed to resolve MX: " + e.getMessage());
         }
 
@@ -155,6 +234,8 @@ public class SmtpClient extends PlainNIOClient {
             }
         }
 
+        sendPreTransactionError("No mail servers found",
+                "There were no valid mail servers for domain: '" + domain + "'.", task.getMessage().getSender());
         throw new PreTransmissionError("Failed to connect to any mail server.");
     }
 
@@ -162,7 +243,7 @@ public class SmtpClient extends PlainNIOClient {
      * Adds an message to the transmission queue
      * @param queuedMessage the message to queue
      */
-    public void enqueue(SmtpClientMessage queuedMessage) {
+    public void enqueue(SmtpClientMessage queuedMessage, int flags) {
         if (Logger.allowTrace()) {
             m_Logger.log("New message queued, total of " + queuedMessage.getRecipients().size() + " recipients.");
         }
@@ -183,7 +264,7 @@ public class SmtpClient extends PlainNIOClient {
             } else {
                 ArrayList<Address> recipients = new ArrayList<Address>();
                 recipients.add(recipient);
-                tasks.put(domain, new SmtpClientTask(queuedMessage, recipients));
+                tasks.put(domain, new SmtpClientTask(queuedMessage, recipients, flags));
             }
         }
 
@@ -196,6 +277,10 @@ public class SmtpClient extends PlainNIOClient {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void enqueue(SmtpClientMessage queuedMessage) {
+        enqueue(queuedMessage, 0);
     }
 
     /****************************************************

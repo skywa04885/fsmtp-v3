@@ -225,9 +225,9 @@ public abstract class PlainNIOClient {
                 //  perform them, and than clear the change request list.
                 synchronized (m_QueuedRegisters) {
                     // Loops over all the queued registers, and registers them in the event loop.
-                    for (QueuedRegister changeRequest : m_QueuedRegisters)
-                        changeRequest.getSocketChannel().register(m_Selector, SelectionKey.OP_ACCEPT,
-                                changeRequest.getAttachment());
+                    for (QueuedRegister changeRequest : m_QueuedRegisters) {
+                        changeRequest.getSocketChannel().register(m_Selector, SelectionKey.OP_CONNECT, changeRequest.getAttachment());
+                    }
 
                     // Clears the queued registers.
                     m_QueuedRegisters.clear();
