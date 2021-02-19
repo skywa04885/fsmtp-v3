@@ -2,3 +2,4 @@
 out/*
 target/*
 *.jks
+./test.sh

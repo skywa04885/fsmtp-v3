@@ -1,22 +1,15 @@
 package nl.fannst;
 
-import nl.fannst.mime.Address;
-import nl.fannst.mime.ContentType;
-import nl.fannst.mime.TransferEncoding;
-import nl.fannst.mime.composer.ComposeTextSection;
-import nl.fannst.mime.composer.Composer;
+import nl.fannst.imap.server.ImapSecureServer;
 import nl.fannst.net.secure.NioSSLServerConfig;
 import nl.fannst.pop3.server.PlainTextPOP3Server;
 import nl.fannst.pop3.server.SecurePOP3Server;
 import nl.fannst.smtp.client.SmtpClient;
-import nl.fannst.smtp.client.transactions.TransactionError;
 import nl.fannst.smtp.server.PlainTextSMTPServer;
 import nl.fannst.smtp.server.SecureSMTPServer;
 import nl.fannst.templates.FreeWriterRenderer;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedList;
 
 public class Main {
     /* Other config */
@@ -30,9 +23,14 @@ public class Main {
     private static final short POP3_SSL_PORT = 995;
     private static final short POP3_PLAIN_PORT = 110;
 
+    /* IMAP Ports */
+    private static final short IMAP_PLAIN_PORT = 143;
+    private static final short IMAP_SSL_PORT = 993;
+
     /* Global shit */
-    private static final Logger m_Logger = new Logger("Main", Logger.Level.INFO);
-    private static final NioSSLServerConfig m_SSLServerConfig = new NioSSLServerConfig();
+    private static final String s_Protocol = "SSLv3";
+    private static final Logger s_Logger = new Logger("Main", Logger.Level.INFO);
+    private static final NioSSLServerConfig s_SSLServerConfig = new NioSSLServerConfig();
 
     /**
      * Starts the application
@@ -40,12 +38,20 @@ public class Main {
      * @throws Exception possible exception which may occur.
      */
     public static void main(String[] args) throws Exception {
-        m_SSLServerConfig.setServerKeyFile(System.getenv("SERVER_KEY_FILE"));
-        m_SSLServerConfig.setServerKeyPass(System.getenv("SERVER_KEY_PASS"));
-        m_SSLServerConfig.setServerStorePass(System.getenv("SERVER_STORE_PASS"));
+        // Sets some default configuration
+        s_SSLServerConfig.setServerKeyFile(System.getenv("SERVER_KEY_FILE"));
+        s_SSLServerConfig.setServerKeyPass(System.getenv("SERVER_KEY_PASS"));
+        s_SSLServerConfig.setServerStorePass(System.getenv("SERVER_STORE_PASS"));
 
-        m_SSLServerConfig.setTrustFile(System.getenv("TRUST_FILE"));
-        m_SSLServerConfig.setTrustStorePass(System.getenv("TRUST_STORE_PASS"));
+        s_SSLServerConfig.setTrustFile(System.getenv("TRUST_FILE"));
+        s_SSLServerConfig.setTrustStorePass(System.getenv("TRUST_STORE_PASS"));
+
+        // Prints some introduction text
+        s_Logger.log("Hello there! This server is NOT open source, all rights are reserved by Luke A.C.A. Rieff - Fannst Software.", Logger.Level.WARN);
+
+        System.out.println("* I know, why is the repo visible than ? I want people to trust the source code,\r\n* and prove that I actually encrypt their messages.\r\n* "
+            + "If there is any company out there,\r\n* I'm free for hiring (And ready to learn more).\r\n* I'm ready to learn new stuff ahha.\r\n* "
+            + "For contact, try this email: lrieff@fannst.nl (Yes, Runs FSMTP/FIMAP/FPOP haha)");
 
         // Prepares for running
         prepare();
@@ -58,7 +64,7 @@ public class Main {
         // Runs the secure servers
         runSecurePOP3();
         runSecureSMTP();
-
+        runSecureIMAP();
     }
 
     private static void prepare() {
@@ -67,26 +73,30 @@ public class Main {
         try {
             FreeWriterRenderer.createInstance();
         } catch (IOException e) {
-            m_Logger.log("Failed to create singleton instances: " + e.getMessage(), Logger.Level.FATAL);
+            s_Logger.log("Failed to create singleton instances: " + e.getMessage(), Logger.Level.FATAL);
         }
     }
+
+    /****************************************************
+     * SMTP
+     ****************************************************/
 
     private static void prepareSMTPClient() {
         try {
             SmtpClient.createInstance();
-            m_Logger.log("SMTPClient instance created!", Logger.Level.INFO);
+            s_Logger.log("SMTPClient instance created!", Logger.Level.INFO);
         } catch (IOException e) {
-            m_Logger.log("Failed to create SMTP client instance: " + e.getMessage(), Logger.Level.FATAL);
+            s_Logger.log("Failed to create SMTP client instance: " + e.getMessage(), Logger.Level.FATAL);
             System.exit(-1);
         }
     }
 
     private static void runSecureSMTP() {
         try {
-            new SecureSMTPServer(m_SSLServerConfig, "SSL", LISTEN, SMTP_SSL_PORT);
-            m_Logger.log("Secure SMTP instance created!", Logger.Level.INFO);
+            new SecureSMTPServer(s_SSLServerConfig, s_Protocol, LISTEN, SMTP_SSL_PORT);
+            s_Logger.log("Secure SMTP instance created!", Logger.Level.INFO);
         } catch (Exception e) {
-            m_Logger.log("Failed to create secure SMTP Instance: " + e.getMessage(), Logger.Level.FATAL);
+            s_Logger.log("Failed to create secure SMTP Instance: " + e.getMessage(), Logger.Level.FATAL);
             System.exit(-1);
         }
     }
@@ -94,19 +104,23 @@ public class Main {
     private static void runPlainPOP3() {
         try {
             new PlainTextPOP3Server(LISTEN, POP3_PLAIN_PORT);
-            m_Logger.log("Plain SMTP instance created!", Logger.Level.INFO);
+            s_Logger.log("Plain SMTP instance created!", Logger.Level.INFO);
         } catch (IOException e) {
-            m_Logger.log("Failed to create Plain SMTP Instance: " + e.getMessage(), Logger.Level.FATAL);
+            s_Logger.log("Failed to create Plain SMTP Instance: " + e.getMessage(), Logger.Level.FATAL);
             System.exit(-1);
         }
     }
 
+    /****************************************************
+     * POP3
+     ****************************************************/
+
     private static void runSecurePOP3() {
         try {
-            new SecurePOP3Server(m_SSLServerConfig, "SSL", LISTEN, POP3_SSL_PORT);
-            m_Logger.log("Secure POP3 instance created!", Logger.Level.INFO);
+            new SecurePOP3Server(s_SSLServerConfig, s_Protocol, LISTEN, POP3_SSL_PORT);
+            s_Logger.log("Secure POP3 instance created!", Logger.Level.INFO);
         } catch (Exception e) {
-            m_Logger.log("Failed to create secure POP3 Instance: " + e.getMessage(), Logger.Level.FATAL);
+            s_Logger.log("Failed to create secure POP3 Instance: " + e.getMessage(), Logger.Level.FATAL);
             System.exit(-1);
         }
     }
@@ -114,9 +128,23 @@ public class Main {
     private static void runPlainSMTP() {
         try {
             new PlainTextSMTPServer(LISTEN, SMTP_PLAIN_PORT);
-            m_Logger.log("Plain POP3 created!", Logger.Level.INFO);
+            s_Logger.log("Plain POP3 created!", Logger.Level.INFO);
         } catch (IOException e) {
-            m_Logger.log("Failed to create Plain POP3 Instance: " + e.getMessage(), Logger.Level.FATAL);
+            s_Logger.log("Failed to create Plain POP3 Instance: " + e.getMessage(), Logger.Level.FATAL);
+            System.exit(-1);
+        }
+    }
+
+    /****************************************************
+     * IMAP
+     ****************************************************/
+
+    private static void runSecureIMAP() {
+        try {
+            new ImapSecureServer(s_SSLServerConfig, s_Protocol, LISTEN, IMAP_SSL_PORT);
+            s_Logger.log("Secure IMAP instance created!", Logger.Level.INFO);
+        } catch (Exception e) {
+            s_Logger.log("Failed to create secure IMAP Instance: " + e.getMessage(), Logger.Level.FATAL);
             System.exit(-1);
         }
     }
