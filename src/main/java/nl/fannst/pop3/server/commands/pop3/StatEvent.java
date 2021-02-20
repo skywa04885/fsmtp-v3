@@ -20,7 +20,7 @@ public class StatEvent implements PopCommandHandler {
 
     @Override
     public void handle(NIOClientWrapperArgument client, PopServerSession session, PopCommand command) throws Exception {
-        ArrayList<Pair<UUID, Integer>> messages = session.getMessages();
+        ArrayList<Pair<Integer, Integer>> messages = session.getMessages();
 
         int totalSize = messages.stream().mapToInt(Pair::getSecond).sum();
         new PopReply(PopReply.Indicator.OK, Integer.toString(messages.size()) + ' ' + totalSize).write(client);

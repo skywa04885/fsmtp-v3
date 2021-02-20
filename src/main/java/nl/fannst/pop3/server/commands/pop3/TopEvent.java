@@ -26,14 +26,14 @@ public class TopEvent implements PopCommandHandler {
     public void handle(NIOClientWrapperArgument client, PopServerSession session, PopCommand command) throws Exception {
         PopCommand.TOP_Argument argument = PopCommand.TOP_Argument.parse(command.getArguments());
 
-        ArrayList<Pair<UUID, Integer>> messages = session.getMessages();
+        ArrayList<Pair<Integer, Integer>> messages = session.getMessages();
         if (argument.getIndex() > (messages.size() + 1)) {
             new PopReply(PopReply.Indicator.ERR, "Max index: " + (messages.size() + 1)).write(client);
             return;
         }
 
         // Requests the message body and decryption key from MongoDB
-        Pair<byte[], byte[]> pair = Message.getMessageBody(messages.get(argument.getIndex() - 1).getFirst());
+        Pair<byte[], byte[]> pair = Message.getMessageBody(session.getAuthenticationUser().getUUID(), messages.get(argument.getIndex() - 1).getFirst());
         assert pair != null;
 
         // Decrypts the body

@@ -5,7 +5,8 @@
 package nl.fannst.imap.server;
 
 import nl.fannst.Logger;
-import nl.fannst.imap.ImapStatusResponse;
+import nl.fannst.imap.ImapResponse;
+import nl.fannst.imap.server.session.ImapSession;
 import nl.fannst.net.secure.NioSSLClientWrapperArgument;
 import nl.fannst.net.secure.NioSSLServer;
 import nl.fannst.net.secure.NioSSLServerConfig;
@@ -49,7 +50,9 @@ public class ImapSecureServer extends NioSSLServer {
             m_Logger.log("New client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "'");
         }
 
-        new ImapStatusResponse(ImapStatusResponse.Status.OK, "Fannst IMAP Secure ready for requests from "
+        client.getClientWrapper().attach(new ImapSession());
+
+        new ImapResponse(null, ImapResponse.Type.OK, "Luke's IMAP Secure ready for requests from "
                 + client.getSocketChannel().socket().getInetAddress().getHostAddress()).write(client);
     }
 

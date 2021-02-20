@@ -58,9 +58,8 @@ public class MailingList extends DatabaseModel {
                 .first();
 
         // If no list, just return null already
-        if (document == null) {
+        if (document == null)
             return null;
-        }
 
         // Returns the class version of the document
         return fromDocument(document);

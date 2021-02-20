@@ -22,7 +22,7 @@ public class DeleEvent implements PopCommandHandler {
     public void handle(NIOClientWrapperArgument client, PopServerSession session, PopCommand command) throws Exception {
         PopCommand.RETR_DELE_Argument argument = PopCommand.RETR_DELE_Argument.parse(command.getArguments());
 
-        ArrayList<Pair<UUID, Integer>> messages = session.getMessages();
+        ArrayList<Pair<Integer, Integer>> messages = session.getMessages();
         if (argument.getIndex() > (messages.size() + 1)) {
             new PopReply(PopReply.Indicator.ERR, "Max index: " + (messages.size() + 1)).write(client);
             return;

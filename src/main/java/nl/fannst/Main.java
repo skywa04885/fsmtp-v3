@@ -33,11 +33,11 @@ public class Main {
     private static final NioSSLServerConfig s_SSLServerConfig = new NioSSLServerConfig();
 
     /**
-     * Starts the application
-     * @param args the command line arguments
-     * @throws Exception possible exception which may occur.
+     * Starts the application.
+     *
+     * @param args the command line arguments.
      */
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         // Sets some default configuration
         s_SSLServerConfig.setServerKeyFile(System.getenv("SERVER_KEY_FILE"));
         s_SSLServerConfig.setServerKeyPass(System.getenv("SERVER_KEY_PASS"));
@@ -68,7 +68,11 @@ public class Main {
     }
 
     private static void prepare() {
-        DatabaseConnection.connect("mongodb://fannst.nl:27017/fannst", "fannst");
+        String dbURI = System.getenv("MONGODB_URI");
+        if (dbURI == null)
+            dbURI = "mongodb://fannst.nl:27017/fannstv2";
+
+        DatabaseConnection.createInstance(dbURI);
 
         try {
             FreeWriterRenderer.createInstance();

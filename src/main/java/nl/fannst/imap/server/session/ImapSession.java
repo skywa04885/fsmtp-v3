@@ -10,4 +10,8 @@ public class ImapSession {
     public ImapSessionState getState() {
         return m_State;
     }
+
+    public void setState(ImapSessionState state) {
+        m_State = state;
+    }
 }

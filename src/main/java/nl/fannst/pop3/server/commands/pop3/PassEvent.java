@@ -68,7 +68,7 @@ public class PassEvent implements PopCommandHandler {
         session.setDecryptionKey(privateKey);
 
         // Gets the currently available message
-        ArrayList<Pair<UUID, Integer>> messages = Message.getPOP3BasicInfo(session.getAuthenticationUser().getUUID());
+        ArrayList<Pair<Integer, Integer>> messages = Message.getPOP3BasicInfo(session.getAuthenticationUser().getUUID());
         session.setMessages(messages);
     }
 }

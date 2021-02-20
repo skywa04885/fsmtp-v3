@@ -24,7 +24,7 @@ public class RetrEvent implements PopCommandHandler {
     public void handle(NIOClientWrapperArgument client, PopServerSession session, PopCommand command) throws Exception {
         PopCommand.RETR_DELE_Argument argument = PopCommand.RETR_DELE_Argument.parse(command.getArguments());
 
-        ArrayList<Pair<UUID, Integer>> messages = session.getMessages();
+        ArrayList<Pair<Integer, Integer>> messages = session.getMessages();
         if (argument.getIndex() >= (messages.size() + 1)) {
             new PopReply(PopReply.Indicator.ERR, "Max index: " + (messages.size() + 1)).write(client);
             return;
@@ -36,8 +36,10 @@ public class RetrEvent implements PopCommandHandler {
         }
 
         // Requests the message body and decryption key from MongoDB
-        Pair<byte[], byte[]> pair = Message.getMessageBody(messages.get(argument.getIndex() - 1).getFirst());
+        Pair<byte[], byte[]> pair = Message.getMessageBody(session.getAuthenticationUser().getUUID(), messages.get(argument.getIndex() - 1).getFirst());
         assert pair != null;
+        assert pair.getFirst() != null;
+        assert pair.getSecond() != null;
 
         // Decrypts the body
         byte[] decrypted = Message.decryptBody(pair.getSecond(), pair.getFirst(), session.getDecryptionKey());

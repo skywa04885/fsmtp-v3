@@ -25,8 +25,8 @@ public class PopServerSession {
 
     private BasicAccount m_User;
 
-    private final ArrayList<UUID> m_DeletionMarkedMessages;
-    private ArrayList<Pair<UUID, Integer>> m_Messages;
+    private final ArrayList<Integer> m_DeletionMarkedMessages;
+    private ArrayList<Pair<Integer, Integer>> m_Messages;
     private int m_HighestAccessNumber;
 
     /**
@@ -35,7 +35,7 @@ public class PopServerSession {
     public PopServerSession() {
         m_State = State.AUTHORIZATION;
         m_HighestAccessNumber = 1;
-        m_DeletionMarkedMessages = new ArrayList<UUID>();
+        m_DeletionMarkedMessages = new ArrayList<Integer>();
     }
 
     /****************************************************
@@ -75,11 +75,11 @@ public class PopServerSession {
         return m_User;
     }
 
-    public void setMessages(ArrayList<Pair<UUID, Integer>> messages) {
+    public void setMessages(ArrayList<Pair<Integer, Integer>> messages) {
         m_Messages = messages;
     }
 
-    public ArrayList<Pair<UUID, Integer>> getMessages() {
+    public ArrayList<Pair<Integer, Integer>> getMessages() {
         return m_Messages;
     }
 
@@ -91,11 +91,11 @@ public class PopServerSession {
         return m_HighestAccessNumber;
     }
 
-    public void addDeleteMarkedMessage(UUID uuid) {
-        m_DeletionMarkedMessages.add(uuid);
+    public void addDeleteMarkedMessage(int uid) {
+        m_DeletionMarkedMessages.add(uid);
     }
 
-    public ArrayList<UUID> getDeleteMarkedMessages() {
+    public ArrayList<Integer> getDeleteMarkedMessages() {
         return m_DeletionMarkedMessages;
     }
 }

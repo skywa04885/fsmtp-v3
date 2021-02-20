@@ -144,9 +144,13 @@ public class Address {
                 address.setAddress(raw.substring(raw.indexOf('<', raw.indexOf('"')) + 1, raw.indexOf('>')).trim());
             }
         } else if (raw.indexOf('<') != -1 || raw.indexOf('>') != -1) {
-            throw new InvalidAddressException("Opening or closing bracket missing!");
+            throw new InvalidAddressException("opening or closing bracket missing!");
         } else {
             address.setAddress(raw);
+        }
+
+        if (!address.getAddress().contains("@")) {
+            throw new InvalidAddressException("no @ found");
         }
 
         if (address.getName() != null && address.getName().trim().length() == 0) {

@@ -52,8 +52,9 @@ public class CommandHandler {
                     "Authentication required: " + e.getMessage()).write(client);
             client.close();
         } catch (Exception e) {
+            e.printStackTrace();
             new SmtpReply(500, SmtpReply.EnhancedStatusCode.detOtherUndefinedStatus.add(SmtpReply.EnhancedStatusCode.classPermanentFailure),
-                    e.getMessage()).write(client);
+                    "" + e.getMessage()).write(client);
         }
     }
 }

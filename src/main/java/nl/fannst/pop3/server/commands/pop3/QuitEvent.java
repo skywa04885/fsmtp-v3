@@ -21,7 +21,7 @@ public class QuitEvent implements PopCommandHandler {
 
         if (session.getDeleteMarkedMessages().size() > 0) {
             new Thread(() -> {
-                Message.deleteMany(session.getDeleteMarkedMessages());
+                Message.deleteMany(session.getAuthenticationUser().getUUID(), session.getDeleteMarkedMessages());
             }).start();
         }
     }

@@ -1,5 +1,7 @@
 package nl.fannst.models.accounts;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
@@ -29,14 +31,16 @@ public class BasicAccount {
     private final String m_FullName;
     private final String m_Password;
     private final UUID m_UUID;
+    private int m_NextUID;
 
-    public BasicAccount(String username, String domain, String fullName, String password, String rsaPublic, UUID uuid) {
+    public BasicAccount(String username, String domain, String fullName, String password, String rsaPublic, UUID uuid, int nextUID) {
         m_Username = username;
         m_Domain = domain;
         m_FullName = fullName;
         m_Password = password;
         m_RSAPublic = rsaPublic;
         m_UUID = uuid;
+        m_NextUID = nextUID;
     }
 
     /****************************************************
@@ -57,7 +61,8 @@ public class BasicAccount {
                 Projections.include("_id"),
                 Projections.include("rsa_public"),
                 Projections.include("full_name"),
-                Projections.include("password")
+                Projections.include("password"),
+                Projections.include("next_uid")
         ))).first();
 
         if (document == null) {
@@ -69,7 +74,8 @@ public class BasicAccount {
                 document.getString("full_name"),
                 document.getString("password"),
                 document.getString("rsa_public"),
-                (UUID) document.get("_id"));
+                (UUID) document.get("_id"),
+                document.getInteger("next_uid"));
     }
 
 
@@ -127,7 +133,8 @@ public class BasicAccount {
                 document.getString("full_name"),
                 document.getString("password"),
                 document.getString("rsa_public"),
-                (UUID) document.get("_id"));
+                (UUID) document.get("_id"),
+                document.getInteger("next_uid"));
 
         // Returns the new pair with the account, and the boolean indicating
         //  if there are more accounts left
@@ -153,7 +160,49 @@ public class BasicAccount {
                 document.getString("full_name"),
                 document.getString("password"),
                 document.getString("rsa_public"),
-                (UUID) document.get("_id"));
+                (UUID) document.get("_id"),
+                document.getInteger("next_uid"));
+    }
+
+    public static Integer getNextUid(UUID uuid) {
+        byte[] binaryUUID = ByteBuffer.wrap(new byte[16])
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(uuid.getMostSignificantBits())
+                .putLong(uuid.getLeastSignificantBits())
+                .array();
+
+        Document document = DatabaseConnection
+                .getInstance()
+                .getAccountsCollection()
+                .find(Filters.eq("_id", binaryUUID))
+                .projection(Projections.fields(Arrays.asList(
+                        Projections.include("next_uid")
+                ))).first();
+
+        if (document == null)
+            return null;
+
+        return document.getInteger("next_uid");
+    }
+
+    public static Integer getNextUidAndIncrement(UUID uuid) {
+        byte[] binaryUUID = ByteBuffer.wrap(new byte[16])
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(uuid.getMostSignificantBits())
+                .putLong(uuid.getLeastSignificantBits())
+                .array();
+
+        BasicDBObject update = new BasicDBObject("$inc", new BasicDBObject("next_uid", 1));
+
+        Document document = DatabaseConnection
+                .getInstance()
+                .getAccountsCollection()
+                .findOneAndUpdate(Filters.eq("_id", new Binary(BsonBinarySubType.UUID_STANDARD, binaryUUID)), update);
+
+        if (document == null)
+            return null;
+
+        return document.getInteger("next_uid");
     }
 
     /****************************************************

@@ -21,12 +21,12 @@ public class UidlEvent implements PopCommandHandler {
 
     @Override
     public void handle(NIOClientWrapperArgument client, PopServerSession session, PopCommand command) throws Exception {
-        ArrayList<Pair<UUID, Integer>> messages = session.getMessages();
+        ArrayList<Pair<Integer, Integer>> messages = session.getMessages();
 
         new PopReply(PopReply.Indicator.OK, "Mailbox listing follows.").write(client);
 
         int i = 0;
-        for (Pair<UUID, Integer> message : messages) {
+        for (Pair<Integer, Integer> message : messages) {
             String line = Integer.toString(++i) + ' ' + message.getFirst().toString() + "\r\n";
             client.write(ByteBuffer.wrap(line.getBytes()));
         }
