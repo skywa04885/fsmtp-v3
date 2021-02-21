@@ -2,6 +2,8 @@ package nl.fannst;
 
 import nl.fannst.imap.ImapWildcardMatcher;
 import nl.fannst.imap.server.ImapSecureServer;
+import nl.fannst.models.mail.mailbox_v2.Mailbox;
+import nl.fannst.models.mail.mailbox_v2.MailboxMeta;
 import nl.fannst.net.secure.NioSSLServerConfig;
 import nl.fannst.pop3.server.PlainTextPOP3Server;
 import nl.fannst.pop3.server.SecurePOP3Server;
@@ -9,9 +11,12 @@ import nl.fannst.smtp.client.SmtpClient;
 import nl.fannst.smtp.server.PlainTextSMTPServer;
 import nl.fannst.smtp.server.SecureSMTPServer;
 import nl.fannst.templates.FreeWriterRenderer;
+import org.bson.json.JsonWriterSettings;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class Main {
@@ -41,34 +46,12 @@ public class Main {
      * @param args the command line arguments.
      */
     public static void main(String[] args) {
-        String[] folders = {
-                "Default",
-                "Default/Inbox",
-                "Default/Sent",
-                "Default/Spam",
-                "Default/System",
+        ArrayList<Mailbox> children = new ArrayList<>();
 
-                "User/Subscriptions/ESET",
-                "User/Subscriptionsa/Telegraph",
-                "User/Subscriptions/Ziggo",
-                "User/Subscriptions/KPN",
-                "User/Subscriptions/KPN/World",
+        children.add(new Mailbox("INBOX", 1, null, new MailboxMeta()));
 
-                "User/Porn",
-                "User/Porn/XVideos",
-                "User/Porn/Pornhub",
-                "User/Porn/XNXX",
-
-                "User/People/Jan",
-                "User/Family/Joana",
-
-                "Other/Subscriptions/Asd"
-        };
-
-        Pattern patter = ImapWildcardMatcher.createPattern("User/*s/*");
-        System.out.println(patter);
-
-        Arrays.stream(folders).filter(c -> patter.matcher(c).matches()).forEach(System.out::println);
+        Mailbox mailbox = new Mailbox("FSMTP", 0, children, new MailboxMeta());
+        System.out.println(mailbox.toDocument(true).toJson());
 
         /*
         // Sets some default configuration
