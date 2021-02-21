@@ -145,14 +145,7 @@ public class ImapResponse {
         }
 
         if (m_Suffix) {
-            String hostname;
-            try {
-                hostname = InetAddress.getLocalHost().getHostName();
-            } catch (UnknownHostException ignore) {
-                hostname = "fsmtp";
-            }
-
-            stringBuilder.append(' ').append(hostname);
+            stringBuilder.append(' ').append('-').append(' ').append("LukeIMAP");
         }
 
         stringBuilder.append("\r\n");

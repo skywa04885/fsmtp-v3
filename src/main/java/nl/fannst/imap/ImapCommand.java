@@ -1,8 +1,6 @@
 package nl.fannst.imap;
 
-import nl.fannst.imap.arguments.ImapCommandArgument;
-import nl.fannst.imap.arguments.ImapLoginArgument;
-import nl.fannst.imap.arguments.ImapMailboxArgument;
+import nl.fannst.imap.arguments.*;
 
 public class ImapCommand {
     /****************************************************
@@ -125,7 +123,7 @@ public class ImapCommand {
         //  error since this is required.
         int snPos = raw.indexOf(' ');
         if (snPos == -1)
-            throw new SyntaxException("invalid tag.");
+            throw new SyntaxException("invalid tag");
 
         String sequenceNumber = raw.substring(0, snPos);
 
@@ -140,7 +138,7 @@ public class ImapCommand {
         // Parses the command keyword to an command enum.
         Type type = Type.fromString(rawType);
         if (type == null)
-            throw new UnrecognizedException("unknown command.");
+            throw new UnrecognizedException("unknown command");
 
         // Parses the argument based on the specified command type, except when it is null
         //  than we just have no argument.
@@ -149,7 +147,9 @@ public class ImapCommand {
 
         switch (type) {
             case LOGIN -> argument = (ImapCommandArgument) ImapLoginArgument.parse(rawArgString);
-            case SELECT, EXAMINE -> argument = (ImapCommandArgument) ImapMailboxArgument.parse(rawArgString);
+            case SELECT, EXAMINE, CREATE, DELETE -> argument = (ImapCommandArgument) ImapMailboxArgument.parse(rawArgString);
+            case RENAME -> argument = (ImapCommandArgument) ImapRenameArgument.parse(rawArgString);
+            case STATUS -> argument = (ImapStatusArgument) ImapStatusArgument.parse(rawArgString);
         }
 
         // Returns the parsed command.

@@ -47,6 +47,6 @@ public class CapabilityCommand implements ImapCommandHandler {
         }
 
         // Sends the response to the client.
-        new ImapResponse(null, ImapResponse.Type.CAPABILITY, capabilityString.toString()).write(client);
+        new ImapResponse(null, ImapResponse.Type.CAPABILITY, capabilityString.toString(), false).write(client);
     }
 }

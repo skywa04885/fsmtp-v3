@@ -86,16 +86,16 @@ public class Message extends DatabaseModel {
 
     private final int m_UID;
     private final UUID m_AccountUUID;
-    private int m_Folder;
+    private int m_Mailbox;
 
     private final long m_Date;
 
-    public Message(int uid, UUID accountUUID, int folder, int rawSize, byte[] decryptionKey, byte[] encryptedBody, String subject,
+    public Message(int uid, UUID accountUUID, int mailbox, int rawSize, byte[] decryptionKey, byte[] encryptedBody, String subject,
                    ArrayList<Address> mailFrom, ArrayList<Address> rcptTo, int flags, long date) {
         m_UID = uid;
         m_AccountUUID = accountUUID;
         m_RawSize = rawSize;
-        m_Folder = folder;
+        m_Mailbox = mailbox;
         m_DecryptionKey = decryptionKey;
         m_EncryptedBody = encryptedBody;
         m_Subject = subject;
@@ -133,7 +133,7 @@ public class Message extends DatabaseModel {
 
         // Creates the full document.
         return new Document("_id", createCompoundIndex(m_AccountUUID, m_UID))
-                .append("folder", m_Folder)
+                .append("mailbox", m_Mailbox)
                 .append("flags", m_Flags)
                 .append("key", m_DecryptionKey)
                 .append("body", m_EncryptedBody)
@@ -175,12 +175,12 @@ public class Message extends DatabaseModel {
         m_Flags &= ~mask;
     }
 
-    public int getFolder() {
-        return m_Folder;
+    public int getMailbox() {
+        return m_Mailbox;
     }
 
-    public void setFolder(int folder) {
-        m_Folder = folder;
+    public void setMailbox(int mailbox) {
+        m_Mailbox = mailbox;
     }
 
     /****************************************************
@@ -396,7 +396,7 @@ public class Message extends DatabaseModel {
         return object;
     }
 
-    public static ArrayList<Integer> getRecent(UUID accountUUID) {
+    public static ArrayList<Integer> getRecent(UUID accountUUID, int mailbox) {
         // Gets the binary version of the specified UUID, this is required
         //  to correctly perform the query.
         byte[] binaryAccountUUID = ByteBuffer.wrap(new byte[16])
@@ -411,7 +411,8 @@ public class Message extends DatabaseModel {
                 .getMailboxesCollection()
                 .find(Filters.and(
                         Filters.eq("_id.account_uuid", new Binary(BsonBinarySubType.UUID_STANDARD, binaryAccountUUID)),
-                        Filters.gte("date", new BsonDateTime(Instant.now().toEpochMilli() - (1000 * 60 * 60 * 24)))
+                        Filters.gte("date", new BsonDateTime(Instant.now().toEpochMilli() - (1000 * 60 * 60 * 24))),
+                        Filters.eq("mailbox", mailbox)
                 ))
                 .limit(80);
 
@@ -421,5 +422,21 @@ public class Message extends DatabaseModel {
             uIDs.add(Objects.requireNonNull((Document) document.get("_id")).getInteger("uid"));
 
         return uIDs;
+    }
+
+    public static void deleteAllFromMailbox(UUID accountUUID, int mailbox) {
+        byte[] binaryAccountUUID = ByteBuffer.wrap(new byte[16])
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(accountUUID.getMostSignificantBits())
+                .putLong(accountUUID.getLeastSignificantBits())
+                .array();
+
+        DatabaseConnection
+                .getInstance()
+                .getMessageCollection()
+                .deleteMany(Filters.and(Arrays.asList(
+                        Filters.eq("_id.account_uuid", new Binary(BsonBinarySubType.UUID_STANDARD, binaryAccountUUID)),
+                        Filters.eq("mailbox", mailbox)
+                )));
     }
 }

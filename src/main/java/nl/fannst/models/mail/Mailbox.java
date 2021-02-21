@@ -3,19 +3,27 @@ package nl.fannst.models.mail;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 import nl.fannst.DatabaseConnection;
 import nl.fannst.models.DatabaseModel;
 import org.bson.BsonBinarySubType;
 import org.bson.Document;
 import org.bson.types.Binary;
 
+import javax.print.Doc;
+import javax.xml.crypto.Data;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.UUID;
 
 public class Mailbox extends DatabaseModel {
+    private static final int MAILBOX_NAME_CHANGE_BIT = (1);
+    private static final int MAILBOX_FLAGS_CHANGE_BIT = (1 << 1);
+    private static final int MAILBOX_MSG_COUNT_CHANGE_BIT = (1 << 2);
+
     /****************************************************
      * Data Types
      ****************************************************/
@@ -56,6 +64,8 @@ public class Mailbox extends DatabaseModel {
     private int m_MessageCount;
     private int m_Flags;
 
+    private int m_ChangeBits;
+
     /**
      * Creates an new mailbox instance.
      *
@@ -71,11 +81,35 @@ public class Mailbox extends DatabaseModel {
         m_MailboxName = mailboxName;
         m_MessageCount = messageCount;
         m_Flags = flags;
+
+        m_ChangeBits = 0x00;
     }
 
     /****************************************************
      * Instance Methods
      ****************************************************/
+
+    /**
+     * Syncs the current document with the one in the database.
+     */
+    public void update() {
+        Document document = new Document();
+
+        // Checks the change bits, and adds the modified variables.
+        if ((m_ChangeBits & MAILBOX_NAME_CHANGE_BIT) != 0)
+            document.append("name", m_MailboxName);
+        if ((m_ChangeBits & MAILBOX_MSG_COUNT_CHANGE_BIT) != 0)
+            document.append("message_count", m_MessageCount);
+        if ((m_ChangeBits & MAILBOX_FLAGS_CHANGE_BIT) != 0)
+            document.append("flags", m_Flags);
+
+        // Updates the document in the database, and sets the change bits to zero.
+        m_ChangeBits = 0;
+        DatabaseConnection
+                .getInstance()
+                .getMailboxesCollection()
+                .updateOne(Filters.eq("_id", createCompoundIndex(m_AccountUUID, m_MailboxID)), new Document("$set", document));
+    }
 
     /****************************************************
      * Override Methods
@@ -133,22 +167,27 @@ public class Mailbox extends DatabaseModel {
     }
 
     public void setMailboxName(String name) {
+        m_ChangeBits |= MAILBOX_NAME_CHANGE_BIT;
         m_MailboxName = name;
     }
 
     public void setMessageCount(int cnt) {
+        m_ChangeBits |= MAILBOX_MSG_COUNT_CHANGE_BIT;
         m_MessageCount = cnt;
     }
 
     public void setFlags(int flags) {
+        m_ChangeBits |= MAILBOX_FLAGS_CHANGE_BIT;
         m_Flags = flags;
     }
 
     public void setFlagMask(int mask) {
+        m_ChangeBits |= MAILBOX_FLAGS_CHANGE_BIT;
         m_Flags |= mask;
     }
 
     public void clearFlagMask(int mask) {
+        m_ChangeBits |= MAILBOX_FLAGS_CHANGE_BIT;
         m_Flags &= ~mask;
     }
 
@@ -315,5 +354,31 @@ public class Mailbox extends DatabaseModel {
         //  to class version.
         if (document == null) return null;
         else return fromDocument(document);
+    }
+
+    public static Integer getLargestID(UUID accountUUID) {
+        byte[] binaryAccountUUID = ByteBuffer.wrap(new byte[16])
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(accountUUID.getMostSignificantBits())
+                .putLong(accountUUID.getLeastSignificantBits())
+                .array();
+
+        FindIterable<Document> documents = DatabaseConnection
+                .getInstance()
+                .getMailboxesCollection()
+                .find(Filters.eq("_id.account_uuid", new Binary(BsonBinarySubType.UUID_STANDARD, binaryAccountUUID)))
+                .sort(Sorts.descending("_id.id"))
+                .limit(1);
+
+        Iterator<Document> iterator = documents.iterator();
+        if (!iterator.hasNext()) return null;
+        else return ((Document) iterator.next().get("_id")).getInteger("id");
+    }
+
+    public static void delete(UUID accountUUID, int id) {
+        DatabaseConnection
+                .getInstance()
+                .getMailboxesCollection()
+                .deleteOne(Filters.eq("_id", createCompoundIndex(accountUUID, id)));
     }
 }

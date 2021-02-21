@@ -1,6 +1,8 @@
 package nl.fannst.imap.datatypes;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class ImapList<T> extends ImapDataType {
     /*
@@ -43,5 +45,22 @@ public class ImapList<T> extends ImapDataType {
 
         stringBuilder.append(SUFFIX);
         return stringBuilder.toString();
+    }
+
+    public static ImapList<String> parse(String raw) {
+        ArrayList<String> result = new ArrayList<String>();
+
+        if (raw.charAt(0) == PREFIX && raw.charAt(raw.length() - 1) == SUFFIX) {
+            try (Scanner scanner = new Scanner(raw.substring(1, raw.length() - 1)).useDelimiter("\\s+")) {
+                while (scanner.hasNext())
+                    result.add(scanner.next());
+            }
+        }
+
+        return new ImapList<String>(result);
+    }
+
+    public List<T> getList() {
+        return m_List;
     }
 }
