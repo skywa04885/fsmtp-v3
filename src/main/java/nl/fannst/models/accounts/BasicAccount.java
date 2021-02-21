@@ -174,7 +174,7 @@ public class BasicAccount {
         Document document = DatabaseConnection
                 .getInstance()
                 .getAccountsCollection()
-                .find(Filters.eq("_id", binaryUUID))
+                .find(Filters.eq("_id", new Binary(BsonBinarySubType.UUID_STANDARD, binaryUUID)))
                 .projection(Projections.fields(Arrays.asList(
                         Projections.include("next_uid")
                 ))).first();

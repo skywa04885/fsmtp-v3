@@ -7,7 +7,6 @@ import nl.fannst.imap.fancy_responses.ImapMailboxInfoResponse;
 import nl.fannst.imap.server.commands.ImapCommandHandler;
 import nl.fannst.imap.server.commands.ImapCommandRequirement;
 import nl.fannst.imap.server.session.ImapSession;
-import nl.fannst.imap.server.session.ImapSessionState;
 import nl.fannst.models.accounts.BasicAccount;
 import nl.fannst.models.mail.Mailbox;
 import nl.fannst.models.mail.Message;
@@ -16,7 +15,7 @@ import nl.fannst.net.NIOClientWrapperArgument;
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class SelectCommand implements ImapCommandHandler {
+public class ExamineCommand implements ImapCommandHandler {
     @Override
     public void allowed(NIOClientWrapperArgument client, ImapCommand command) throws Exception {
         ImapCommandRequirement.requireAuthenticated(client, command);
@@ -52,14 +51,7 @@ public class SelectCommand implements ImapCommandHandler {
 
         ImapResponse.StatusCode statusCode = new ImapResponse.StatusCode(mailbox.isFlagSet(Mailbox.Flag.ReadOnly)
                 ? ImapResponse.StatusCode.Type.READ_ONLY : ImapResponse.StatusCode.Type.READ_WRITE, null);
-        new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK, "SELECT completed", false, statusCode,
+        new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK, "EXAMINE completed", false, statusCode,
                 null).write(client);
-
-        //
-        // Finishes
-        //
-
-        session.setState(ImapSessionState.SELECTED);
-        session.setMailbox(mailbox);
     }
 }

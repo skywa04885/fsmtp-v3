@@ -2,7 +2,6 @@ package nl.fannst.models.mail;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.model.DBCollectionCountOptions;
 import com.mongodb.client.model.Filters;
 import nl.fannst.DatabaseConnection;
 import nl.fannst.models.DatabaseModel;
@@ -26,7 +25,8 @@ public class Mailbox extends DatabaseModel {
         Outgoing(1, "Outgoing"),
         Suspicious(2, "Suspicious"),
         System(3, "System"),
-        Solid(4, "Solid");
+        Solid(4, "Solid"),
+        ReadOnly(5, "Read-Only");
 
         private final int m_Mask;
         private final String m_Keyword;
@@ -150,6 +150,10 @@ public class Mailbox extends DatabaseModel {
 
     public void clearFlagMask(int mask) {
         m_Flags &= ~mask;
+    }
+
+    public boolean isFlagSet(Flag flag) {
+        return (m_Flags & flag.getMask()) != 0;
     }
 
     /****************************************************
@@ -279,5 +283,37 @@ public class Mailbox extends DatabaseModel {
         object.append("id", id);
 
         return object;
+    }
+
+    /**
+     * Gets an mailbox from account by name.
+     *
+     * @param accountUUID the account UUID.
+     * @param name the name.
+     * @return the found mailbox.
+     */
+    public static Mailbox getByName(UUID accountUUID, String name) {
+        // Gets the binary version of the specified UUID, this is required
+        //  to correctly perform the query.
+        byte[] binaryAccountUUID = ByteBuffer.wrap(new byte[16])
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(accountUUID.getMostSignificantBits())
+                .putLong(accountUUID.getLeastSignificantBits())
+                .array();
+
+        // Performs the query.
+        Document document = DatabaseConnection
+                .getInstance()
+                .getMailboxesCollection()
+                .find(Filters.and(
+                        Filters.eq("_id.account_uuid", new Binary(BsonBinarySubType.UUID_STANDARD, binaryAccountUUID)),
+                        Filters.eq("name", name)
+                ))
+                .first();
+
+        // If null, just return null, else parse the document
+        //  to class version.
+        if (document == null) return null;
+        else return fromDocument(document);
     }
 }

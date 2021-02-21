@@ -2,10 +2,7 @@ package nl.fannst.imap;
 
 import nl.fannst.imap.arguments.ImapCommandArgument;
 import nl.fannst.imap.arguments.ImapLoginArgument;
-import nl.fannst.imap.arguments.ImapSelectArgument;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import nl.fannst.imap.arguments.ImapMailboxArgument;
 
 public class ImapCommand {
     /****************************************************
@@ -152,7 +149,7 @@ public class ImapCommand {
 
         switch (type) {
             case LOGIN -> argument = (ImapCommandArgument) ImapLoginArgument.parse(rawArgString);
-            case SELECT -> argument = (ImapCommandArgument) ImapSelectArgument.parse(rawArgString);
+            case SELECT, EXAMINE -> argument = (ImapCommandArgument) ImapMailboxArgument.parse(rawArgString);
         }
 
         // Returns the parsed command.

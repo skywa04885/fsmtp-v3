@@ -85,7 +85,7 @@ public class SmtpStoreMessage implements Runnable {
                     m_Subject,
                     m_MailFrom,
                     m_RcptTo,
-                    (byte) 0,
+                    0,
                     Instant.now().toEpochMilli());
 
             message.save();

@@ -30,6 +30,7 @@ public class ImapCommon {
             event.getHandler().allowed(client, command);
             event.getHandler().handle(client, command);
         } catch (Exception e) {
+            e.printStackTrace();
             new ImapResponse(null, ImapResponse.Type.BAD, e.getMessage()).write(client);
         }
     }

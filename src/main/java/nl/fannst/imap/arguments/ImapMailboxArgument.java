@@ -1,16 +1,17 @@
 package nl.fannst.imap.arguments;
 
 import nl.fannst.imap.ImapCommand;
-import nl.fannst.mime.Address;
 
-public class ImapSelectArgument extends ImapCommandArgument {
+import java.util.regex.Pattern;
+
+public class ImapMailboxArgument extends ImapCommandArgument {
     /****************************************************
      * Classy Stuff
      ****************************************************/
 
     private final String m_Mailbox;
 
-    public ImapSelectArgument(String mailbox) {
+    public ImapMailboxArgument(String mailbox) {
         m_Mailbox = mailbox;
     }
 
@@ -18,14 +19,18 @@ public class ImapSelectArgument extends ImapCommandArgument {
      * Static Methods
      ****************************************************/
 
-    public static ImapSelectArgument parse(String raw) throws ImapCommand.SyntaxException {
+    private static final Pattern MAILBOX_PATTERN = Pattern.compile("^([A-Za-z0-9-_\\[\\]/]+)$");
+    public static ImapMailboxArgument parse(String raw) throws ImapCommand.SyntaxException {
         String[] segments = raw.split("\\s+");
         if (segments.length < 1)
             throw new ImapCommand.SyntaxException("not enough arguments");
         else if (segments.length > 1)
             throw new ImapCommand.SyntaxException("too many arguments");
 
-        return new ImapSelectArgument(segments[0]);
+        if (!MAILBOX_PATTERN.matcher(segments[0]).matches())
+            throw new ImapCommand.SyntaxException("invalid mailbox name");
+
+        return new ImapMailboxArgument(segments[0]);
     }
 
     /****************************************************

@@ -27,6 +27,10 @@ public class LoginCommand implements ImapCommandHandler {
         ImapLoginArgument argument = (ImapLoginArgument) command.getArgument();
         Address user = argument.getUser();
 
+        //
+        // Verifies the domain.
+        //
+
         // Gets the domain, if it is not found send the client an error message,
         //  that it is not handled by this system.
         Domain domain = Domain.get(user.getDomain());
@@ -34,6 +38,10 @@ public class LoginCommand implements ImapCommandHandler {
             new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, "domain not handled by system").write(client);
             return;
         }
+
+        //
+        // Gets the user & checks password.
+        //
 
         // Gets the basic account, if it is not found, send the client an error message,
         //  stating that the account is not found.
@@ -49,11 +57,16 @@ public class LoginCommand implements ImapCommandHandler {
             return;
         }
 
+        //
+        // Finishes
+        //
+
         // Writes the success response.
         CapabilityCommand.send(client, command.getSequenceNo(), CapabilityCommand.AUTHENTICATED_CAPABILITIES);
         new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK,
                 user.toString() + " authenticated").write(client);
 
         session.setState(ImapSessionState.AUTHENTICATED);
+        session.setAccount(basicAccount);
     }
 }

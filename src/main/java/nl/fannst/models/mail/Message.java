@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.time.Instant;
 import java.util.*;
 
 public class Message extends DatabaseModel {
@@ -29,27 +30,39 @@ public class Message extends DatabaseModel {
      ****************************************************/
 
     public enum Flag {
-        SEEN(0, "Seen"),
-        ANSWERED(1, "Answered"),
-        FLAGGED(2, "Flagged"),
-        DELETED(3, "Deleted"),
-        DRAFT(4, "Draft"),
-        RECENT(5, "Recent");
+        SEEN(0, "Seen", true),
+        ANSWERED(1, "Answered", false),
+        FLAGGED(2, "Flagged", false),
+        DELETED(3, "Deleted", true),
+        DRAFT(4, "Draft", false),
+        RECENT(5, "Recent", false);
 
         private final int m_Mask;
+        private final int m_Pos;
         private final String m_Keyword;
+        private final boolean m_Permanent;
 
-        Flag(int bit, String keyword) {
+        Flag(int bit, String keyword, boolean permanent) {
+            m_Pos = bit;
             m_Mask = (1 << bit);
             m_Keyword = keyword;
+            m_Permanent = permanent;
         }
 
         public int getMask() {
             return m_Mask;
         }
 
+        public int getPos() {
+            return m_Pos;
+        }
+
         public String getKeyword() {
             return m_Keyword;
+        }
+
+        public boolean getPermanent() {
+            return m_Permanent;
         }
 
         @Override
@@ -178,17 +191,25 @@ public class Message extends DatabaseModel {
      * Gets all the UIDs from the specified mailbox, and where the specified
      *  flag / flags are set.
      *
+     * @param accountUUID the account uuid.
      * @param mailbox the mailbox.
      * @param flags the flags to check.
      * @return the list of UIDs.
      */
-    public static ArrayList<Integer> getUIDsWhereFlagSet(int mailbox, int flags) {
+    public static ArrayList<Integer> getUIDsWhereFlagSet(UUID accountUUID, int mailbox, int flags) {
+        byte[] binaryAccountUUID = ByteBuffer.wrap(new byte[16])
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(accountUUID.getMostSignificantBits())
+                .putLong(accountUUID.getLeastSignificantBits())
+                .array();
+
         // Gets all the documents where the specified bit is set, and the mailbox equals the specified
         //  mailbox, this mostly is used for search / select in IMAP.
         FindIterable<Document> documents = DatabaseConnection
                 .getInstance()
                 .getMessageCollection()
                 .find(Filters.and(Arrays.asList(
+                        Filters.eq("_id.account_uuid", new Binary(BsonBinarySubType.UUID_STANDARD, binaryAccountUUID)),
                         Filters.bitsAllSet("flags", flags),
                         Filters.eq("mailbox", mailbox)
                 ))).projection(Projections.fields(Projections.include("_id")))
@@ -206,17 +227,25 @@ public class Message extends DatabaseModel {
      * Gets all the UIDs from the specified mailbox, and where the specified
      *  flag / flags are cleared.
      *
+     * @param accountUUID the account uuid.
      * @param mailbox the mailbox.
      * @param flags the flags to check.
      * @return the list of UIDs.
      */
-    public ArrayList<Integer> getUIDsWhereFlagClear(int mailbox, int flags) {
+    public static ArrayList<Integer> getUIDsWhereFlagClear(UUID accountUUID, int mailbox, int flags) {
+        byte[] binaryAccountUUID = ByteBuffer.wrap(new byte[16])
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(accountUUID.getMostSignificantBits())
+                .putLong(accountUUID.getLeastSignificantBits())
+                .array();
+
         // Gets all the documents where the specified bit is clear, and the mailbox equals the specified
         //  mailbox, this mostly is used for search / select in IMAP.
         FindIterable<Document> documents = DatabaseConnection
                 .getInstance()
                 .getMessageCollection()
                 .find(Filters.and(Arrays.asList(
+                        Filters.eq("_id.account_uuid", new Binary(BsonBinarySubType.UUID_STANDARD, binaryAccountUUID)),
                         Filters.bitsAllClear("flags", flags),
                         Filters.eq("mailbox", mailbox)
                 ))).projection(Projections.fields(Projections.include("_id")))
@@ -365,5 +394,32 @@ public class Message extends DatabaseModel {
         object.append("uid", uid);
 
         return object;
+    }
+
+    public static ArrayList<Integer> getRecent(UUID accountUUID) {
+        // Gets the binary version of the specified UUID, this is required
+        //  to correctly perform the query.
+        byte[] binaryAccountUUID = ByteBuffer.wrap(new byte[16])
+                .order(ByteOrder.BIG_ENDIAN)
+                .putLong(accountUUID.getMostSignificantBits())
+                .putLong(accountUUID.getLeastSignificantBits())
+                .array();
+
+        // Performs the query.
+        FindIterable<Document> documents = DatabaseConnection
+                .getInstance()
+                .getMailboxesCollection()
+                .find(Filters.and(
+                        Filters.eq("_id.account_uuid", new Binary(BsonBinarySubType.UUID_STANDARD, binaryAccountUUID)),
+                        Filters.gte("date", new BsonDateTime(Instant.now().toEpochMilli() - (1000 * 60 * 60 * 24)))
+                ))
+                .limit(80);
+
+        // Builds the result list of integers ( message uuid's )
+        ArrayList<Integer> uIDs = new ArrayList<>();
+        for (Document document : documents)
+            uIDs.add(Objects.requireNonNull((Document) document.get("_id")).getInteger("uid"));
+
+        return uIDs;
     }
 }

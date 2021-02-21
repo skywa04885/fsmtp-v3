@@ -2,16 +2,15 @@ package nl.fannst.imap.server.commands;
 
 import nl.fannst.imap.ImapCapability;
 import nl.fannst.imap.ImapCommand;
-import nl.fannst.imap.server.commands.imap.CapabilityCommand;
-import nl.fannst.imap.server.commands.imap.LoginCommand;
-import nl.fannst.imap.server.commands.imap.LogoutCommand;
-import nl.fannst.imap.server.commands.imap.NoopCommand;
+import nl.fannst.imap.server.commands.imap.*;
 
 public enum ImapCommandEvent {
     LOGOUT(ImapCommand.Type.LOGOUT, new LogoutCommand()),
     CAPABILITY(ImapCommand.Type.CAPABILITY, new CapabilityCommand()),
     NOOP(ImapCommand.Type.NOOP, new NoopCommand()),
-    LOGIN(ImapCommand.Type.LOGIN, new LoginCommand());
+    LOGIN(ImapCommand.Type.LOGIN, new LoginCommand()),
+    SELECT(ImapCommand.Type.SELECT, new SelectCommand()),
+    EXAMINE(ImapCommand.Type.EXAMINE, new ExamineCommand());
 
     private final ImapCommand.Type m_CommandType;
     private final ImapCommandHandler m_EventHandler;
