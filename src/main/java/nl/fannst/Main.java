@@ -1,5 +1,6 @@
 package nl.fannst;
 
+import nl.fannst.imap.ImapWildcardMatcher;
 import nl.fannst.imap.server.ImapSecureServer;
 import nl.fannst.net.secure.NioSSLServerConfig;
 import nl.fannst.pop3.server.PlainTextPOP3Server;
@@ -10,6 +11,8 @@ import nl.fannst.smtp.server.SecureSMTPServer;
 import nl.fannst.templates.FreeWriterRenderer;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.regex.Pattern;
 
 public class Main {
     /* Other config */
@@ -38,6 +41,36 @@ public class Main {
      * @param args the command line arguments.
      */
     public static void main(String[] args) {
+        String[] folders = {
+                "Default",
+                "Default/Inbox",
+                "Default/Sent",
+                "Default/Spam",
+                "Default/System",
+
+                "User/Subscriptions/ESET",
+                "User/Subscriptionsa/Telegraph",
+                "User/Subscriptions/Ziggo",
+                "User/Subscriptions/KPN",
+                "User/Subscriptions/KPN/World",
+
+                "User/Porn",
+                "User/Porn/XVideos",
+                "User/Porn/Pornhub",
+                "User/Porn/XNXX",
+
+                "User/People/Jan",
+                "User/Family/Joana",
+
+                "Other/Subscriptions/Asd"
+        };
+
+        Pattern patter = ImapWildcardMatcher.createPattern("User/*s/*");
+        System.out.println(patter);
+
+        Arrays.stream(folders).filter(c -> patter.matcher(c).matches()).forEach(System.out::println);
+
+        /*
         // Sets some default configuration
         s_SSLServerConfig.setServerKeyFile(System.getenv("SERVER_KEY_FILE"));
         s_SSLServerConfig.setServerKeyPass(System.getenv("SERVER_KEY_PASS"));
@@ -65,6 +98,7 @@ public class Main {
         runSecurePOP3();
         runSecureSMTP();
         runSecureIMAP();
+         */
     }
 
     private static void prepare() {
