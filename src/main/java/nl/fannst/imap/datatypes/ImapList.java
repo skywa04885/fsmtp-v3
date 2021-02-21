@@ -5,6 +5,17 @@ import java.util.List;
 import java.util.Scanner;
 
 public class ImapList<T> extends ImapDataType {
+    /****************************************************
+     * Data Types
+     ****************************************************/
+
+    public static class SyntaxException extends Exception {
+        public SyntaxException(String s) {
+            super(s);
+        }
+    }
+
+
     /*
         Data structures are represented as a "parenthesized list"; a sequence
         of data items, delimited by space, and bounded at each end by
@@ -47,14 +58,15 @@ public class ImapList<T> extends ImapDataType {
         return stringBuilder.toString();
     }
 
-    public static ImapList<String> parse(String raw) {
+    public static ImapList<String> parse(String raw) throws SyntaxException {
         ArrayList<String> result = new ArrayList<String>();
 
-        if (raw.charAt(0) == PREFIX && raw.charAt(raw.length() - 1) == SUFFIX) {
-            try (Scanner scanner = new Scanner(raw.substring(1, raw.length() - 1)).useDelimiter("\\s+")) {
-                while (scanner.hasNext())
-                    result.add(scanner.next());
-            }
+        if (raw.charAt(0) != PREFIX || raw.charAt(raw.length() - 1) != SUFFIX)
+            throw new SyntaxException("invalid list");
+
+        try (Scanner scanner = new Scanner(raw.substring(1, raw.length() - 1)).useDelimiter("\\s+")) {
+            while (scanner.hasNext())
+                result.add(scanner.next());
         }
 
         return new ImapList<String>(result);

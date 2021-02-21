@@ -1,5 +1,6 @@
 package nl.fannst.imap.arguments;
 
+import nl.fannst.Globals;
 import nl.fannst.imap.ImapCommand;
 import nl.fannst.imap.datatypes.ImapList;
 
@@ -55,19 +56,23 @@ public class ImapStatusArgument extends ImapCommandArgument {
      * Static Methods
      ****************************************************/
 
-    private static final Pattern MAILBOX_PATTERN = Pattern.compile("^([A-Za-z0-9-_\\[\\]/]+)$");
     public static ImapStatusArgument parse(String raw) throws ImapCommand.SyntaxException {
         int pos = raw.indexOf(' ');
         if (pos == -1)
             throw new ImapCommand.SyntaxException("not enough arguments");
 
         String mailbox = raw.substring(0, pos);
-        if (!MAILBOX_PATTERN.matcher(mailbox).matches())
+        if (!Globals.MAILBOX_PATTERN.matcher(mailbox).matches())
             throw new ImapCommand.SyntaxException("invalid mailbox name");
 
-        ArrayList<Item> items = new ArrayList<>();
-        List<String> rawItems = ImapList.parse(raw.substring(pos + 1)).getList();
+        List<String> rawItems;
+        try {
+            rawItems = ImapList.parse(raw.substring(pos + 1)).getList();
+        } catch (ImapList.SyntaxException e) {
+            throw new ImapCommand.SyntaxException(e.getMessage());
+        }
 
+        ArrayList<Item> items = new ArrayList<>();
         for (String rawItem : rawItems) {
             Item item;
             if ((item = Item.fromString(rawItem)) == null)

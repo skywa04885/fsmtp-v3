@@ -17,7 +17,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class Select_Examine_Command {
+public class SelectAndExamineCommand {
+    private static final String EXAMINE_COMPLETED_MESSAGE = "examine completed, now in selected state";
+    private static final String EXAMINE_NO_SUCH_MAILBOX_MESSAGE = "examine failure, no such mailbox";
+
+    private static final String SELECT_COMPLETED_MESSAGE = "select completed, now in selected state";
+    private static final String SELECT_NO_SUCH_MAILBOX_MESSAGE = "select failure, no such mailbox";
+
     private static void sendMailboxStatus(NIOClientWrapperArgument client, ImapCommand command, Mailbox mailbox) throws IOException {
         ImapSession session = (ImapSession) client.getClientWrapper().attachment();
 
@@ -27,12 +33,7 @@ public class Select_Examine_Command {
 
         int nextUID = Objects.requireNonNull(BasicAccount.getNextUid(session.getAccount().getUUID()));
         new ImapMailboxInfoResponse(mailbox.getMessageCount(), recent.size(), unseen.size(), Message.Flag.values(), nextUID,
-                Integer.MAX_VALUE - (nextUID - 1)).write(client);
-
-        ImapResponse.StatusCode statusCode = new ImapResponse.StatusCode(mailbox.isFlagSet(Mailbox.Flag.ReadOnly)
-                ? ImapResponse.StatusCode.Type.READ_ONLY : ImapResponse.StatusCode.Type.READ_WRITE, null);
-        new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK, "EXAMINE completed", false, statusCode,
-                null).write(client);
+                Integer.MAX_VALUE).write(client);
     }
 
     /****************************************************
@@ -56,11 +57,16 @@ public class Select_Examine_Command {
 
             Mailbox mailbox = Mailbox.getByName(session.getAccount().getUUID(), argument.getMailbox());
             if (mailbox == null) {
-                new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, "no such mailbox").write(client);
+                new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, EXAMINE_NO_SUCH_MAILBOX_MESSAGE).write(client);
                 return;
             }
 
             sendMailboxStatus(client, command, mailbox);
+            new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK, SELECT_COMPLETED_MESSAGE, false,
+                    new ImapResponse.StatusCode(ImapResponse.StatusCode.Type.READ_ONLY, null), null).write(client);
+
+            session.setState(ImapSessionState.SELECTED_NO_CHANGES);
+            session.setMailbox(mailbox);
         }
     }
 
@@ -82,11 +88,14 @@ public class Select_Examine_Command {
             // Gets the mailbox.
             Mailbox mailbox = Mailbox.getByName(session.getAccount().getUUID(), argument.getMailbox());
             if (mailbox == null) {
-                new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, "no such mailbox").write(client);
+                new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, SELECT_NO_SUCH_MAILBOX_MESSAGE).write(client);
                 return;
             }
 
             sendMailboxStatus(client, command, mailbox);
+            ImapResponse.StatusCode statusCode = new ImapResponse.StatusCode(mailbox.isFlagSet(Mailbox.Flag.ReadOnly) ? ImapResponse.StatusCode.Type.READ_ONLY : ImapResponse.StatusCode.Type.READ_WRITE, null);
+            new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK, SELECT_COMPLETED_MESSAGE, false, statusCode,
+                    null).write(client);
 
             session.setState(ImapSessionState.SELECTED);
             session.setMailbox(mailbox);

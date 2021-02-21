@@ -1,5 +1,6 @@
 package nl.fannst.imap.arguments;
 
+import nl.fannst.Globals;
 import nl.fannst.imap.ImapCommand;
 
 import java.util.regex.Pattern;
@@ -19,7 +20,6 @@ public class ImapMailboxArgument extends ImapCommandArgument {
      * Static Methods
      ****************************************************/
 
-    private static final Pattern MAILBOX_PATTERN = Pattern.compile("^([A-Za-z0-9-_\\[\\]/]+)$");
     public static ImapMailboxArgument parse(String raw) throws ImapCommand.SyntaxException {
         String[] segments = raw.split("\\s+");
         if (segments.length < 1)
@@ -27,7 +27,7 @@ public class ImapMailboxArgument extends ImapCommandArgument {
         else if (segments.length > 1)
             throw new ImapCommand.SyntaxException("too many arguments");
 
-        if (!MAILBOX_PATTERN.matcher(segments[0]).matches())
+        if (!Globals.MAILBOX_PATTERN.matcher(segments[0]).matches())
             throw new ImapCommand.SyntaxException("invalid mailbox name");
 
         return new ImapMailboxArgument(segments[0]);
