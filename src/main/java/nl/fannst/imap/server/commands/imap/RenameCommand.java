@@ -2,13 +2,11 @@ package nl.fannst.imap.server.commands.imap;
 
 import nl.fannst.imap.ImapCommand;
 import nl.fannst.imap.ImapResponse;
-import nl.fannst.imap.arguments.ImapMailboxArgument;
 import nl.fannst.imap.arguments.ImapRenameArgument;
 import nl.fannst.imap.server.commands.ImapCommandHandler;
 import nl.fannst.imap.server.commands.ImapCommandRequirement;
 import nl.fannst.imap.server.session.ImapSession;
-import nl.fannst.models.mail.Mailbox;
-import nl.fannst.models.mail.Message;
+import nl.fannst.models.mail.old.Mailbox;
 import nl.fannst.net.NIOClientWrapperArgument;
 
 import java.io.IOException;

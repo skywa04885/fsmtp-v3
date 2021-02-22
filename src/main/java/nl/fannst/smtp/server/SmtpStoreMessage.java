@@ -7,7 +7,6 @@ import nl.fannst.mime.Address;
 import nl.fannst.mime.Header;
 import nl.fannst.mime.encoding.NonASCIIText;
 import nl.fannst.models.accounts.BasicAccount;
-import nl.fannst.models.mail.Mailbox;
 import nl.fannst.models.mail.Message;
 import nl.fannst.smtp.client.SmtpClient;
 import nl.fannst.smtp.client.SmtpClientMessage;

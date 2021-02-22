@@ -9,7 +9,7 @@ import nl.fannst.imap.server.commands.ImapCommandRequirement;
 import nl.fannst.imap.server.session.ImapSession;
 import nl.fannst.imap.server.session.ImapSessionState;
 import nl.fannst.models.accounts.BasicAccount;
-import nl.fannst.models.mail.Mailbox;
+import nl.fannst.models.mail.old.Mailbox;
 import nl.fannst.models.mail.Message;
 import nl.fannst.net.NIOClientWrapperArgument;
 
@@ -66,7 +66,7 @@ public class SelectAndExamineCommand {
                     new ImapResponse.StatusCode(ImapResponse.StatusCode.Type.READ_ONLY, null), null).write(client);
 
             session.setState(ImapSessionState.SELECTED_NO_CHANGES);
-            session.setMailbox(mailbox);
+            session.setMailboxes(mailbox);
         }
     }
 
@@ -98,7 +98,7 @@ public class SelectAndExamineCommand {
                     null).write(client);
 
             session.setState(ImapSessionState.SELECTED);
-            session.setMailbox(mailbox);
+            session.setMailboxes(mailbox);
         }
     }
 

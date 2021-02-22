@@ -8,7 +8,7 @@ import nl.fannst.imap.server.commands.ImapCommandHandler;
 import nl.fannst.imap.server.commands.ImapCommandRequirement;
 import nl.fannst.imap.server.session.ImapSession;
 import nl.fannst.models.accounts.BasicAccount;
-import nl.fannst.models.mail.Mailbox;
+import nl.fannst.models.mail.old.Mailbox;
 import nl.fannst.models.mail.Message;
 import nl.fannst.net.NIOClientWrapperArgument;
 

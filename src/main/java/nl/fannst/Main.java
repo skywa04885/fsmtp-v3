@@ -1,9 +1,11 @@
 package nl.fannst;
 
-import nl.fannst.imap.ImapWildcardMatcher;
+import com.mongodb.MongoClient;
+import nl.fannst.datatypes.Pair;
 import nl.fannst.imap.server.ImapSecureServer;
 import nl.fannst.models.mail.mailbox_v2.Mailbox;
 import nl.fannst.models.mail.mailbox_v2.MailboxMeta;
+import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 import nl.fannst.net.secure.NioSSLServerConfig;
 import nl.fannst.pop3.server.PlainTextPOP3Server;
 import nl.fannst.pop3.server.SecurePOP3Server;
@@ -11,13 +13,12 @@ import nl.fannst.smtp.client.SmtpClient;
 import nl.fannst.smtp.server.PlainTextSMTPServer;
 import nl.fannst.smtp.server.SecureSMTPServer;
 import nl.fannst.templates.FreeWriterRenderer;
+import org.bson.BsonDocument;
 import org.bson.json.JsonWriterSettings;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.regex.Pattern;
+import java.util.UUID;
 
 public class Main {
     /* Other config */
@@ -46,14 +47,26 @@ public class Main {
      * @param args the command line arguments.
      */
     public static void main(String[] args) {
-        ArrayList<Mailbox> children = new ArrayList<>();
+//        Mailboxes mailboxes = new Mailboxes(UUID.randomUUID(), new ArrayList<Mailbox>(), 0);
 
-        children.add(new Mailbox("INBOX", 1, null, new MailboxMeta()));
+//        mailboxes.insertMailbox("Default/Incoming");
+//        mailboxes.insertMailbox("Default/Incoming/Asd");
+//        mailboxes.insertMailbox("Default/Outgoing");
+//        mailboxes.insertMailbox("Default/Suspicious");
+//        mailboxes.insertMailbox("Default/System/Asd");
+//        mailboxes.insertMailbox("Default/SystemDada/Asd");
+//
+//        mailboxes.insertMailbox("User/Accounts/Porn");
+//        mailboxes.computeImapFlags();
+//
+//        BsonDocument bsonDocument = mailboxes.toDocument().toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
+//        JsonWriterSettings.Builder settingsBuilder = JsonWriterSettings.builder().indent(true);
+//        System.out.println(bsonDocument.toJson(settingsBuilder.build()));
+//
+//        ArrayList<Pair<String, Mailbox>> matches = mailboxes.match("%");
+//        for (Pair<String, Mailbox> match : matches)
+//            System.out.println(match.getFirst());
 
-        Mailbox mailbox = new Mailbox("FSMTP", 0, children, new MailboxMeta());
-        System.out.println(mailbox.toDocument(true).toJson());
-
-        /*
         // Sets some default configuration
         s_SSLServerConfig.setServerKeyFile(System.getenv("SERVER_KEY_FILE"));
         s_SSLServerConfig.setServerKeyPass(System.getenv("SERVER_KEY_PASS"));
@@ -81,7 +94,6 @@ public class Main {
         runSecurePOP3();
         runSecureSMTP();
         runSecureIMAP();
-         */
     }
 
     private static void prepare() {
