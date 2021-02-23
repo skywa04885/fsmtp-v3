@@ -104,6 +104,15 @@ public class MailboxMeta {
         m_ImapFlags &= ~flag.getMask();
     }
 
+    public boolean isSystemFlagSet(SystemFlags flag) {
+        return (m_SystemFlags & flag.getMask()) != 0;
+    }
+
+    public boolean isSystemFlagClear(SystemFlags flag) {
+        return (m_SystemFlags & flag.getMask()) == 0;
+    }
+
+
     public boolean isImapFlagSet(ImapFlags flag) {
         return (m_ImapFlags & flag.getMask()) != 0;
     }
