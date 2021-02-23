@@ -8,6 +8,9 @@ import nl.fannst.mime.Header;
 import nl.fannst.mime.encoding.NonASCIIText;
 import nl.fannst.models.accounts.BasicAccount;
 import nl.fannst.models.mail.Message;
+import nl.fannst.models.mail.mailbox_v2.Mailbox;
+import nl.fannst.models.mail.mailbox_v2.MailboxMeta;
+import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 import nl.fannst.smtp.client.SmtpClient;
 import nl.fannst.smtp.client.SmtpClientMessage;
 import nl.fannst.smtp.server.session.SmtpServerSessionData;
@@ -50,16 +53,27 @@ public class SmtpStoreMessage implements Runnable {
             // Gets the mailbox to store the message in.
             //
 
-            // Gets the incoming mailbox.
-            Mailbox mailbox = Mailbox.getByFlag(account.getUUID(), Mailbox.Flag.Solid.getMask() | Mailbox.Flag.Incoming.getMask());
-            if (mailbox == null) {
-                m_Logger.log("Incoming mailbox not found for account: " + account.getAddress().toString() + ", somethign wrong?", Logger.Level.WARN);
+            // Gets the mailboxes for the user, if this fails ( Most likely not ),
+            //  send an warning to the console.
+            Mailboxes mailboxes = Mailboxes.get(account.getUUID());
+            if (mailboxes == null) {
+                m_Logger.log("No mailboxes found for specified user, may be an error LOL ?", Logger.Level.WARN);
                 return;
             }
 
-            // Performs some debug logging.
+            // Gets the mailbox which is marked with system flag 'incoming', it may be solid
+            //  or not, idc tbh.
+            ArrayList<Mailbox> matching = mailboxes.getBySystemFlag(MailboxMeta.SystemFlags.INCOMING, true);
+            if (matching.size() <= 0) {
+                m_Logger.log("No incomming mailbox found ? This should not happen...", Logger.Level.WARN);
+                return;
+            }
+
+            // Gets the first mailbox, and performs an console log to indicate that we've
+            //  successfully received the mailbox.
+            Mailbox mailbox = matching.get(0);
             if (Logger.allowTrace())
-                m_Logger.log("Incomming mailbox found: " + mailbox.getMailboxName() + ":" + mailbox.getMailboxID(), Logger.Level.TRACE);
+                m_Logger.log("Incomming mailbox found: " + mailbox.getName() + ":" + mailbox.getID(), Logger.Level.TRACE);
 
             //
             // Encrypts & Stores the message.
@@ -77,7 +91,7 @@ public class SmtpStoreMessage implements Runnable {
             // Creates the new message model, after which we save it to mongodb.
             Message message = new Message(Objects.requireNonNull(BasicAccount.getNextUidAndIncrement(account.getUUID())),
                     account.getUUID(),
-                    mailbox.getMailboxID(),
+                    mailbox.getID(),
                     m_Message.length(),
                     key,
                     body,
@@ -86,11 +100,14 @@ public class SmtpStoreMessage implements Runnable {
                     m_RcptTo,
                     0,
                     Instant.now().toEpochMilli());
-
             message.save();
 
-            // Increments the message count for the specified mailbox.
-            Mailbox.incMessageCount(account.getUUID(), mailbox.getMailboxID());
+            // Increments the message count, and updates the message tree.
+            mailbox.getMeta().incrementMessageCount();
+            mailbox.setMetaChangeBit();
+
+            mailboxes.setHeadsChangeBit();
+            mailboxes.update();
         } catch (Exception e) {
             m_Logger.log("Failed to store message: " + e.getMessage());
             e.printStackTrace();

@@ -3,19 +3,22 @@ package nl.fannst.models.mail.mailbox_v2;
 import org.bson.Document;
 
 import javax.print.Doc;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 public class Mailbox {
     /****************************************************
-     * MongoDB Fields
+     * Static Variables
      ****************************************************/
 
-    private static final String NAME_FIELD = "n";
-    private static final String CHILDREN_FIELD = "c";
-    private static final String META_FIELD = "m";
-    private static final String ID_FIELD = "id";
+    public static final int NAME_CHANGE_BIT = (1);
+    public static final int CHILDREN_CHANGE_BIT = (1 << 1);
+    public static final int META_CHANGE_BIT = (1 << 1);
+
+    public static final String NAME_FIELD = "n";
+    public static final String CHILDREN_FIELD = "c";
+    public static final String META_FIELD = "m";
+    public static final String ID_FIELD = "id";
 
     /****************************************************
      * Classy Stuff
@@ -26,11 +29,14 @@ public class Mailbox {
     private ArrayList<Mailbox> m_Children;
     private MailboxMeta m_Meta;
 
+    private int m_ChangeBits;
+
     public Mailbox(String name, int id, ArrayList<Mailbox> children, MailboxMeta meta) {
         m_ID = id;
         m_Name = name;
         m_Children = children;
         m_Meta = meta;
+        m_ChangeBits = 0;
     }
 
     /****************************************************
@@ -39,7 +45,6 @@ public class Mailbox {
 
     public Document toDocument() {
         Document document = new Document();
-
 
         document.append(NAME_FIELD, m_Name);
         document.append(META_FIELD, m_Meta.toDocument());
@@ -56,6 +61,33 @@ public class Mailbox {
         return document;
     }
 
+    public Document toUpdateDocument() {
+        Document document = new Document();
+
+        if ((m_ChangeBits & NAME_CHANGE_BIT) != 0)
+            document.append(NAME_FIELD, m_Name);
+        if ((m_ChangeBits & META_CHANGE_BIT) != 0)
+            document.append(META_FIELD, m_Meta.toUpdateDocument());
+        if ((m_ChangeBits & CHILDREN_CHANGE_BIT) != 0)
+            document.append(CHILDREN_FIELD, m_Children.stream()
+                .map(Mailbox::toUpdateDocument)
+                .collect(Collectors.toCollection(ArrayList::new)));
+
+        return document;
+    }
+
+    /****************************************************
+     * Getters / Setters
+     ****************************************************/
+
+    public void setMetaChangeBit() {
+        m_ChangeBits |= META_CHANGE_BIT;
+    }
+
+    public int getChangeBits() {
+        return m_ChangeBits;
+    }
+
     public String getName() {
         return m_Name;
     }
@@ -66,6 +98,25 @@ public class Mailbox {
 
     public MailboxMeta getMeta() {
         return m_Meta;
+    }
+
+    public int getID() {
+        return m_ID;
+    }
+
+    public void setName(String name) {
+        m_ChangeBits |= NAME_CHANGE_BIT;
+        m_Name = name;
+    }
+
+    public void setChildren(ArrayList<Mailbox> children) {
+        m_ChangeBits |= CHILDREN_CHANGE_BIT;
+        m_Children = children;
+    }
+
+    public void setMeta(MailboxMeta meta) {
+        m_ChangeBits |= META_CHANGE_BIT;
+        m_Meta = meta;
     }
 
     /****************************************************

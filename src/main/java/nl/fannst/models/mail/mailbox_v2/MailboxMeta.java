@@ -5,6 +5,10 @@ import org.bson.Document;
 import javax.print.Doc;
 
 public class MailboxMeta {
+    /****************************************************
+     * Data Types
+     ****************************************************/
+
     public enum SystemFlags {
         INCOMING(0, "Incoming"),
         OUTGOING(1, "Outgoing"),
@@ -64,27 +68,50 @@ public class MailboxMeta {
         }
     }
 
+    /****************************************************
+     * Static Variables
+     ****************************************************/
+
     private static final String MESSAGE_COUNT_FIELD = "c";
     private static final String SYSTEM_FLAGS_FIELD = "s_f";
     private static final String IMAP_FLAGS_FIELD = "i_f";
     private static final String TOTAL_SIZE_FIELD = "ts";
 
+    private static final int MESSAGE_COUNT_CHANGE_BIT = (1);
+    private static final int SYSTEM_FLAGS_CHANGE_BIT = (1 << 1);
+    private static final int IMAP_FLAGS_CHANGE_BIT = (1 << 2);
+    private static final int TOTAL_SIZE_CHANGE_BIT = (1 << 3);
+
+    /****************************************************
+     * Classy Stuff
+     ****************************************************/
+
     private int m_MessageCount;
     private int m_TotalSize;
     private int m_SystemFlags;
     private int m_ImapFlags;
+    private int m_ChangeBits;
 
     public MailboxMeta(int messageCount, int systemFlags, int imapFlags, int totalSize) {
         m_MessageCount = messageCount;
         m_SystemFlags = systemFlags;
         m_ImapFlags = imapFlags;
         m_TotalSize = totalSize;
+        m_ChangeBits = 0;
     }
 
     public MailboxMeta() {
         this(0, 0, 0, 0);
     }
 
+    /****************************************************
+     * Instance Methods
+     ****************************************************/
+
+    /**
+     * Creates the document version of the document.
+     * @return the document version.
+     */
     public Document toDocument() {
         Document document = new Document();
 
@@ -96,12 +123,38 @@ public class MailboxMeta {
         return document;
     }
 
+    public Document toUpdateDocument() {
+        Document document = new Document();
+
+        if ((m_ChangeBits & MESSAGE_COUNT_CHANGE_BIT) != 0)
+            document.append(MESSAGE_COUNT_FIELD, m_MessageCount);
+        if ((m_ChangeBits & SYSTEM_FLAGS_CHANGE_BIT) != 0)
+            document.append(SYSTEM_FLAGS_FIELD, m_SystemFlags);
+        if ((m_ChangeBits & IMAP_FLAGS_CHANGE_BIT) != 0)
+            document.append(IMAP_FLAGS_FIELD, m_ImapFlags);
+        if ((m_ChangeBits & TOTAL_SIZE_CHANGE_BIT) != 0)
+            document.append(TOTAL_SIZE_FIELD, m_TotalSize);
+
+        return document;
+    }
+
+    /****************************************************
+     * Getters / Setters
+     ****************************************************/
+
     public void setImapFlag(ImapFlags flag) {
+        m_ChangeBits |= IMAP_FLAGS_CHANGE_BIT;
         m_ImapFlags |= flag.getMask();
     }
 
     public void clearImapFlag(ImapFlags flag) {
+        m_ChangeBits |= IMAP_FLAGS_CHANGE_BIT;
         m_ImapFlags &= ~flag.getMask();
+    }
+
+    public void incrementMessageCount() {
+        m_ChangeBits |= MESSAGE_COUNT_CHANGE_BIT;
+        ++m_MessageCount;
     }
 
     public boolean isSystemFlagSet(SystemFlags flag) {
@@ -111,7 +164,6 @@ public class MailboxMeta {
     public boolean isSystemFlagClear(SystemFlags flag) {
         return (m_SystemFlags & flag.getMask()) == 0;
     }
-
 
     public boolean isImapFlagSet(ImapFlags flag) {
         return (m_ImapFlags & flag.getMask()) != 0;

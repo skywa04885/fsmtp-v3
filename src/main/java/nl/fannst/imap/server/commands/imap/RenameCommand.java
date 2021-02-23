@@ -6,7 +6,9 @@ import nl.fannst.imap.arguments.ImapRenameArgument;
 import nl.fannst.imap.server.commands.ImapCommandHandler;
 import nl.fannst.imap.server.commands.ImapCommandRequirement;
 import nl.fannst.imap.server.session.ImapSession;
-import nl.fannst.models.mail.old.Mailbox;
+import nl.fannst.models.mail.mailbox_v2.Mailbox;
+import nl.fannst.models.mail.mailbox_v2.MailboxMeta;
+import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 import nl.fannst.net.NIOClientWrapperArgument;
 
 import java.io.IOException;
@@ -34,15 +36,22 @@ public class RenameCommand implements ImapCommandHandler {
         ImapSession session = (ImapSession) client.getClientWrapper().attachment();
         ImapRenameArgument argument = (ImapRenameArgument) command.getArgument();
 
-        // Gets the mailbox by the specified name, if not found send error.
-        Mailbox mailbox = Mailbox.getByName(session.getAccount().getUUID(), argument.getOriginal());
+        // Gets all the mailboxes for the user, if this returns null we will throw
+        //  an assertion error, since it should not occur.
+        Mailboxes mailboxes = Mailboxes.get(session.getAccount().getUUID());
+        assert mailboxes != null : "There cannot be an account without mailboxes.";
+
+        // Gets the mailbox by the specified name, if it does not exist trow an does
+        //  not exist error to the client.
+        Mailbox mailbox = mailboxes.getInstanceMailbox(argument.getOriginal());
         if (mailbox == null) {
-            new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_DOESNT_EXISTS_MESSAGE).write(client);
+            new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_DOESNT_EXISTS_MESSAGE)
+                    .write(client);
             return null;
         }
 
         // Checks if we may delete the mailbox, if not just send error.
-        if (mailbox.isFlagSet(Mailbox.Flag.Solid)) {
+        if (mailbox.getMeta().isSystemFlagSet(MailboxMeta.SystemFlags.SYSTEM)) {
             new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, CANNOT_RENAME_MESSAGE).write(client);
             return null;
         }

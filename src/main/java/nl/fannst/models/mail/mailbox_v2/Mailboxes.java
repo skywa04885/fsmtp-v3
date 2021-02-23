@@ -9,6 +9,7 @@ import org.bson.Document;
 import org.bson.types.Binary;
 
 import javax.print.Doc;
+import javax.xml.crypto.Data;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -20,22 +21,60 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Mailboxes extends ModelLinkedToAccount {
+    /****************************************************
+     * Static Variables
+     ****************************************************/
+
+    private static final int HEADS_CHANGE_BIT = (1);
+    private static final int NEXT_ID_CHANGE_BIT = (1 << 1);
+
     private static final String HEADS_FIELD = "h";
     private static final String NEXT_ID_FIELD = "n";
 
+    /****************************************************
+     * Classy Stuff
+     ****************************************************/
+
     private ArrayList<Mailbox> m_Heads;
     private int m_NextID;
+
+    private int m_ChangeBits;
 
     public Mailboxes(UUID accountUUID, ArrayList<Mailbox> heads, int nextID) {
         super(accountUUID);
 
         m_Heads = heads;
         m_NextID = 0;
+        m_ChangeBits = 0;
     }
 
     /****************************************************
      * Instance Methods
      ****************************************************/
+
+    private static ArrayList<Document> buildMailboxUpdates(ArrayList<Mailbox> a) {
+        ArrayList<Document> documents = new ArrayList<Document>();
+        for (Mailbox b : a)
+            documents.add(b.toUpdateDocument());
+
+        return documents;
+    }
+
+    public void update() {
+        Document document = new Document();
+
+        if ((m_ChangeBits & HEADS_CHANGE_BIT) != 0) {
+            document.append(HEADS_FIELD, buildMailboxUpdates(m_Heads));
+        }
+
+        if ((m_ChangeBits & NEXT_ID_CHANGE_BIT) != 0)
+            document.append(NEXT_ID_FIELD, m_NextID);
+
+        DatabaseConnection
+                .getInstance()
+                .getMailboxesCollection()
+                .updateOne(Filters.eq("_id", getBinaryAccountUUID()), new Document("$set", document));
+    }
 
     /**
      * Creates the document version of the class.
@@ -66,6 +105,8 @@ public class Mailboxes extends ModelLinkedToAccount {
      * @param metas the meta data ( if new ).
      */
     public void insertMailbox(String dir, MailboxMeta ...metas) {
+        m_ChangeBits |= HEADS_CHANGE_BIT;
+
         String[] segments = dir.split("/");
 
         ArrayList<Mailbox> a = m_Heads;
@@ -363,15 +404,21 @@ public class Mailboxes extends ModelLinkedToAccount {
      * Loops over all the mailboxes present, and computes the HasChildren & HasNoChildren flags
      */
     public void computeImapFlags() {
+        m_ChangeBits |= HEADS_CHANGE_BIT;
         computeImapFlags(m_Heads);
     }
 
     public int getAndIncrementNextID() {
+        m_ChangeBits |= NEXT_ID_CHANGE_BIT;
         return m_NextID++;
     }
 
     public ArrayList<Mailbox> getHeads() {
         return m_Heads;
+    }
+
+    public void setHeadsChangeBit() {
+        m_ChangeBits |= HEADS_CHANGE_BIT;
     }
 
     /****************************************************
