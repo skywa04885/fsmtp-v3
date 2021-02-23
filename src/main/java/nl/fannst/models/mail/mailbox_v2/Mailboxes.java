@@ -133,6 +133,43 @@ public class Mailboxes extends ModelLinkedToAccount {
     }
 
     /**
+     * Gets all the mailboxes where the specified flag is set.
+     *
+     * @param a the list to search through.
+     * @param flag the flag to check.
+     * @param set check for set or clear ?
+     * @return the matching mailboxes.
+     */
+    public static ArrayList<Mailbox> getByImapFlag(ArrayList<Mailbox> a, MailboxMeta.ImapFlags flag, boolean set) {
+        ArrayList<Mailbox> mailboxes = new ArrayList<>();
+
+        // Loops over all elements of the structure, and asks all the meta
+        //  objects if they have the specified flag set.
+        for (Mailbox b : a) {
+            if (set && b.getMeta().isImapFlagSet(flag))
+                mailboxes.add(b);
+            else if (!set && b.getMeta().isImapFlagClear(flag))
+                mailboxes.add(b);
+
+            if (!b.getChildren().isEmpty())
+                mailboxes.addAll(getByImapFlag(b.getChildren(), flag, set));
+        }
+
+        return mailboxes;
+    }
+
+    /**
+     * Gets all the mailboxes from tree where specified flag is set.
+     *
+     * @param flag the flag.
+     * @param set check for set or clear ?
+     * @return the matching mailboxes.
+     */
+    public ArrayList<Mailbox> getByImapFlag(MailboxMeta.ImapFlags flag, boolean set) {
+        return getByImapFlag(m_Heads, flag, set);
+   }
+
+    /**
      * Tokenizes the specified wildcard.
      *
      * @param wildcard the wildcard.

@@ -104,6 +104,14 @@ public class MailboxMeta {
         m_ImapFlags &= ~flag.getMask();
     }
 
+    public boolean isImapFlagSet(ImapFlags flag) {
+        return (m_ImapFlags & flag.getMask()) != 0;
+    }
+
+    public boolean isImapFlagClear(ImapFlags flag) {
+        return (m_ImapFlags & flag.getMask()) == 0;
+    }
+
     public static MailboxMeta fromDocument(Document document) {
         return new MailboxMeta(document.getInteger(MESSAGE_COUNT_FIELD),
                 document.getInteger(SYSTEM_FLAGS_FIELD),
