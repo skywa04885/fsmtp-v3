@@ -8,8 +8,9 @@ import nl.fannst.imap.server.commands.ImapCommandHandler;
 import nl.fannst.imap.server.commands.ImapCommandRequirement;
 import nl.fannst.imap.server.session.ImapSession;
 import nl.fannst.models.accounts.BasicAccount;
-import nl.fannst.models.mail.old.Mailbox;
 import nl.fannst.models.mail.Message;
+import nl.fannst.models.mail.mailbox_v2.Mailbox;
+import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 import nl.fannst.net.NIOClientWrapperArgument;
 
 import java.util.ArrayList;
@@ -30,8 +31,19 @@ public class StatusCommand implements ImapCommandHandler {
         ImapSession session = (ImapSession) client.getClientWrapper().attachment();
         ImapStatusArgument argument = (ImapStatusArgument) command.getArgument();
 
+        //
+        // Gets the mailboxes
+        //
+
+        Mailboxes mailboxes = Mailboxes.get(session.getAccount().getUUID());
+        assert mailboxes != null : "Mailboxes may not be null!";
+
+        //
+        // Gets the mailbox & gets status.
+        //
+
         // Gets the mailbox by the specified name, if not found send error.
-        Mailbox mailbox = Mailbox.getByName(session.getAccount().getUUID(), argument.getMailbox());
+        Mailbox mailbox = mailboxes.getInstanceMailbox(argument.getMailbox());
         if (mailbox == null) {
             new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_DOESNT_EXISTS_MESSAGE).write(client);
             return;
@@ -45,15 +57,15 @@ public class StatusCommand implements ImapCommandHandler {
 
             switch (item) {
                 case RECENT -> {
-                    List<Integer> recentUIDs = Message.getRecent(session.getAccount().getUUID(), mailbox.getMailboxID());
+                    List<Integer> recentUIDs = Message.getRecent(session.getAccount().getUUID(), mailbox.getID());
                     statusItems.add(Integer.toString(recentUIDs.size()));
                 }
                 case UNSEEN -> {
-                    List<Integer> unseenUIDs = Message.getUIDsWhereFlagClear(session.getAccount().getUUID(), mailbox.getMailboxID(),
+                    List<Integer> unseenUIDs = Message.getUIDsWhereFlagClear(session.getAccount().getUUID(), mailbox.getID(),
                             Message.Flag.SEEN.getMask());
                     statusItems.add(Integer.toString(unseenUIDs.size()));
                 }
-                case MESSAGES -> statusItems.add(Integer.toString(mailbox.getMessageCount()));
+                case MESSAGES -> statusItems.add(Integer.toString(mailbox.getMeta().getMessageCount()));
                 case UID_NEXT -> statusItems.add(Integer.toString(Objects.requireNonNull(
                         BasicAccount.getNextUid(session.getAccount().getUUID()))));
                 case UID_VALIDITY -> statusItems.add(Integer.toString(Integer.MAX_VALUE));

@@ -6,7 +6,7 @@ import nl.fannst.imap.arguments.ImapMailboxArgument;
 import nl.fannst.imap.server.commands.ImapCommandHandler;
 import nl.fannst.imap.server.commands.ImapCommandRequirement;
 import nl.fannst.imap.server.session.ImapSession;
-import nl.fannst.models.mail.old.Mailbox;
+import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 import nl.fannst.net.NIOClientWrapperArgument;
 
 public class CreateCommand implements ImapCommandHandler {
@@ -24,11 +24,18 @@ public class CreateCommand implements ImapCommandHandler {
         ImapMailboxArgument argument = (ImapMailboxArgument) command.getArgument();
 
         //
+        // Gets the users mailboxes
+        //
+
+        Mailboxes mailboxes = Mailboxes.get(session.getAccount().getUUID());
+        assert mailboxes != null : "Mailboxes may not be null!";
+
+        //
         // Checks if not exists.
         //
 
         // Checks if the mailbox does not exist yet
-        if (Mailbox.getByName(session.getAccount().getUUID(), argument.getMailbox()) != null) {
+        if (mailboxes.getInstanceMailbox(argument.getMailbox()) != null) {
             new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_EXISTS_MESSAGE).write(client);
             return;
         }
@@ -37,16 +44,13 @@ public class CreateCommand implements ImapCommandHandler {
         // Creates the new mailbox.
         //
 
-        // Gets the largest ID of the mailboxes, increment it and use it as ID.
-        Integer largestMailboxID;
-        if ((largestMailboxID = Mailbox.getLargestID(session.getAccount().getUUID())) == null)
-            largestMailboxID = 0;
+        // Inserts the new mailbox in the tree, and performs the flag creation
+        //  such as HAS_CHILDREN and HAS_NO_CHILDREN.
+        mailboxes.insertMailbox(argument.getMailbox());
+        mailboxes.computeImapFlags();
 
-        // Creates the new mailbox, and saves it to MongoDB.
-        Mailbox mailbox = new Mailbox(session.getAccount().getUUID(), largestMailboxID + 1, argument.getMailbox(),
-                0, 0);
-
-        mailbox.save();
+        // Performs the update operation
+        mailboxes.update();
 
         //
         // Finishes

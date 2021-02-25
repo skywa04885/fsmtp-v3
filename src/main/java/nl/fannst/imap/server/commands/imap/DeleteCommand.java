@@ -6,8 +6,10 @@ import nl.fannst.imap.arguments.ImapMailboxArgument;
 import nl.fannst.imap.server.commands.ImapCommandHandler;
 import nl.fannst.imap.server.commands.ImapCommandRequirement;
 import nl.fannst.imap.server.session.ImapSession;
-import nl.fannst.models.mail.old.Mailbox;
 import nl.fannst.models.mail.Message;
+import nl.fannst.models.mail.mailbox_v2.Mailbox;
+import nl.fannst.models.mail.mailbox_v2.MailboxMeta;
+import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 import nl.fannst.net.NIOClientWrapperArgument;
 
 import java.io.IOException;
@@ -22,48 +24,40 @@ public class DeleteCommand implements ImapCommandHandler {
         ImapCommandRequirement.requireAuthenticated(client, command);
     }
 
-    /**
-     * Gets the mailbox specified by the client, we send an error if the mailbox was not found
-     *  or was declared as solid ( non-deletable ).
-     *
-     * @param client the client.
-     * @param command the command
-     * @return the mailbox.
-     * @throws IOException possible exception,
-     */
-    private Mailbox getMailbox(NIOClientWrapperArgument client, ImapCommand command) throws IOException {
-        ImapSession session = (ImapSession) client.getClientWrapper().attachment();
-        ImapMailboxArgument argument = (ImapMailboxArgument) command.getArgument();
-
-        // Gets the mailbox by the specified name, if not found send error.
-        Mailbox mailbox = Mailbox.getByName(session.getAccount().getUUID(), argument.getMailbox());
-        if (mailbox == null) {
-            new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_DOESNT_EXISTS_MESSAGE).write(client);
-            return null;
-        }
-
-        // Checks if we may delete the mailbox, if not just send error.
-        if (mailbox.isFlagSet(Mailbox.Flag.Solid)) {
-            new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_CANNOT_BE_DELETED_MESSAGE).write(client);
-            return null;
-        }
-
-        return mailbox;
-    }
-
-
     @Override
     public void handle(NIOClientWrapperArgument client, ImapCommand command) throws Exception {
         ImapSession session = (ImapSession) client.getClientWrapper().attachment();
+        ImapMailboxArgument argument = (ImapMailboxArgument) command.getArgument();
 
-        // Gets the mailbox, if it returns null either it is not allowed, or it was
-        //  not found, so return.
-        Mailbox mailbox = getMailbox(client, command);
-        if (mailbox == null) return;
+        //
+        // Gets all the mailboxes.
+        //
+
+        Mailboxes mailboxes = Mailboxes.get(session.getAccount().getUUID());
+        assert mailboxes != null : "Mailboxes may not be null";
+
+        //
+        // Gets and deletes the mailbox.
+        //
+
+        // Gets the mailbox by the specified name, if not found send error.
+        Mailbox mailbox = mailboxes.getInstanceMailbox(argument.getMailbox());
+        if (mailbox == null) {
+            new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_DOESNT_EXISTS_MESSAGE).write(client);
+            return;
+        }
+
+        // Checks if we may delete the mailbox, if not just send error.
+        if (mailbox.getMeta().isSystemFlagSet(MailboxMeta.SystemFlags.SOLID)) {
+            new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_CANNOT_BE_DELETED_MESSAGE).write(client);
+            return;
+        }
 
         // Deletes all the messages from the mailbox, and the mailbox itself.
-        Message.deleteAllFromMailbox(session.getAccount().getUUID(), mailbox.getMailboxID());
-        Mailbox.delete(session.getAccount().getUUID(), mailbox.getMailboxID());
+        Message.deleteAllFromMailbox(session.getAccount().getUUID(), mailbox.getID());
+        mailboxes.deleteMailbox(argument.getMailbox());
+        mailboxes.computeImapFlags();
+        mailboxes.update();
 
         // Sends the OK response to indicate the mailbox is deleted.
         new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK, DELETE_COMPLETED_MESSAGE).write(client);

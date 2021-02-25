@@ -99,6 +99,41 @@ public class Mailboxes extends ModelLinkedToAccount {
     }
 
     /**
+     * Deletes an mailbox from the tree.
+     * @param dir the specific directory.
+     * @return was there something deleted ?
+     */
+    public boolean deleteMailbox(String dir) {
+        String[] segments = dir.split("/");
+
+        ArrayList<Mailbox> a = m_Heads;
+
+        int i = 0;
+        for (String segment : segments) {
+            Mailbox b = null;
+
+            for (Mailbox aN : a) {
+                if (aN.getName().equals(segment)) {
+                    b = aN;
+                }
+            }
+
+            if (b == null)
+                return false;
+            else if (i + 1 > segments.length) {
+                a.remove(b);
+                break;
+            } else if (!b.getChildren().isEmpty())
+                a = b.getChildren();
+
+            ++i;
+        }
+
+        m_ChangeBits |= HEADS_CHANGE_BIT;
+        return true;
+    }
+
+    /**
      * Inserts a new mailbox into the tree.
      *
      * @param dir the directory.

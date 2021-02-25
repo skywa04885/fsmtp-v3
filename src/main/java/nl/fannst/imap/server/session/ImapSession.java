@@ -1,12 +1,13 @@
 package nl.fannst.imap.server.session;
 
 import nl.fannst.models.accounts.BasicAccount;
+import nl.fannst.models.mail.mailbox_v2.Mailbox;
 import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 
 public class ImapSession {
     private ImapSessionState m_State;
     private BasicAccount m_Account;
-    private Mailboxes m_SelectedMailbox;
+    private Mailbox m_SelectedMailbox;
 
     public ImapSession() {
         m_State = ImapSessionState.NOT_AUTHENTICATED;
@@ -28,11 +29,11 @@ public class ImapSession {
         m_Account = account;
     }
 
-    public Mailboxes getMailboxes() {
+    public Mailbox getMailboxes() {
         return m_SelectedMailbox;
     }
 
-    public void setMailboxes(Mailboxes mailboxes) {
-        m_SelectedMailbox = mailboxes;
+    public void setMailboxes(Mailbox mailbox) {
+        m_SelectedMailbox = mailbox;
     }
 }

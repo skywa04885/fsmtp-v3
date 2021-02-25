@@ -142,6 +142,10 @@ public class MailboxMeta {
      * Getters / Setters
      ****************************************************/
 
+    public int getMessageCount() {
+        return m_MessageCount;
+    }
+
     public void setImapFlag(ImapFlags flag) {
         m_ChangeBits |= IMAP_FLAGS_CHANGE_BIT;
         m_ImapFlags |= flag.getMask();

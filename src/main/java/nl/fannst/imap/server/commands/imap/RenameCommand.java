@@ -23,16 +23,7 @@ public class RenameCommand implements ImapCommandHandler {
         ImapCommandRequirement.requireAuthenticated(client, command);
     }
 
-    /**
-     * Gets the mailbox specified by the client, we send an error if the mailbox was not found
-     *  or was declared as solid ( non-deletable ).
-     *
-     * @param client the client.
-     * @param command the command
-     * @return the mailbox.
-     * @throws IOException possible exception,
-     */
-    private Mailbox getMailbox(NIOClientWrapperArgument client, ImapCommand command) throws IOException {
+    private boolean renameMailbox(NIOClientWrapperArgument client, ImapCommand command) throws IOException {
         ImapSession session = (ImapSession) client.getClientWrapper().attachment();
         ImapRenameArgument argument = (ImapRenameArgument) command.getArgument();
 
@@ -47,43 +38,31 @@ public class RenameCommand implements ImapCommandHandler {
         if (mailbox == null) {
             new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, MAILBOX_DOESNT_EXISTS_MESSAGE)
                     .write(client);
-            return null;
+            return false;
         }
 
         // Checks if we may delete the mailbox, if not just send error.
         if (mailbox.getMeta().isSystemFlagSet(MailboxMeta.SystemFlags.SYSTEM)) {
             new ImapResponse(command.getSequenceNo(), ImapResponse.Type.NO, CANNOT_RENAME_MESSAGE).write(client);
-            return null;
+            return false;
         }
 
-        return mailbox;
-    }
+        // Sets the new name for the mailbox.
+        mailbox.setName(argument.getNew());
 
-    /**
-     * Renames the mailbox.
-     *
-     * @param client the client.
-     * @param command the command.
-     * @param mailbox the mailbox.
-     */
-    private void renameMailbox(NIOClientWrapperArgument client, ImapCommand command, Mailbox mailbox) {
-        ImapRenameArgument argument = (ImapRenameArgument) command.getArgument();
+        // Since one of the sub-elements changed, we will set the heads
+        //  changed bit, and perform an tree-wise update operation.
+        mailboxes.setHeadsChangeBit();
+        mailboxes.update();
 
-        mailbox.setMailboxName(argument.getNew());
-        mailbox.update();
+        return true;
     }
 
     @Override
     public void handle(NIOClientWrapperArgument client, ImapCommand command) throws Exception {
-        ImapSession session = (ImapSession) client.getClientWrapper().attachment();
-
-        // Gets the mailbox, if it returns null either it is not allowed, or it was
-        //  not found, so return.
-        Mailbox mailbox = getMailbox(client, command);
-        if (mailbox == null) return;
-
         // Performs the rename operation.
-        renameMailbox(client, command, mailbox);
+        if (!renameMailbox(client, command))
+            return;
 
         // Sends the OK response to indicate the mailbox is deleted.
         new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK, RENAME_COMPLETED_MESSAGE).write(client);
