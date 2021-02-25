@@ -12,8 +12,6 @@ import nl.fannst.models.mail.mailbox_v2.MailboxMeta;
 import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 import nl.fannst.net.NIOClientWrapperArgument;
 
-import java.io.IOException;
-
 public class DeleteCommand implements ImapCommandHandler {
     private static final String MAILBOX_DOESNT_EXISTS_MESSAGE = "delete failure: can't delete mailbox with that name";
     private static final String MAILBOX_CANNOT_BE_DELETED_MESSAGE = "delete failure: mailbox is non-deletable";

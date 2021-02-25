@@ -2,6 +2,7 @@ package nl.fannst;
 
 import com.mongodb.MongoClient;
 import nl.fannst.datatypes.Pair;
+import nl.fannst.imap.server.ImapPlainServer;
 import nl.fannst.imap.server.ImapSecureServer;
 import nl.fannst.models.mail.mailbox_v2.Mailbox;
 import nl.fannst.models.mail.mailbox_v2.MailboxMeta;
@@ -47,26 +48,6 @@ public class Main {
      * @param args the command line arguments.
      */
     public static void main(String[] args) {
-//        Mailboxes mailboxes = new Mailboxes(UUID.randomUUID(), new ArrayList<Mailbox>(), 0);
-
-//        mailboxes.insertMailbox("Default/Incoming");
-//        mailboxes.insertMailbox("Default/Incoming/Asd");
-//        mailboxes.insertMailbox("Default/Outgoing");
-//        mailboxes.insertMailbox("Default/Suspicious");
-//        mailboxes.insertMailbox("Default/System/Asd");
-//        mailboxes.insertMailbox("Default/SystemDada/Asd");
-//
-//        mailboxes.insertMailbox("User/Accounts/Porn");
-//        mailboxes.computeImapFlags();
-//
-//        BsonDocument bsonDocument = mailboxes.toDocument().toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
-//        JsonWriterSettings.Builder settingsBuilder = JsonWriterSettings.builder().indent(true);
-//        System.out.println(bsonDocument.toJson(settingsBuilder.build()));
-//
-//        ArrayList<Pair<String, Mailbox>> matches = mailboxes.match("%");
-//        for (Pair<String, Mailbox> match : matches)
-//            System.out.println(match.getFirst());
-
         // Sets some default configuration
         s_SSLServerConfig.setServerKeyFile(System.getenv("SERVER_KEY_FILE"));
         s_SSLServerConfig.setServerKeyPass(System.getenv("SERVER_KEY_PASS"));
@@ -89,6 +70,7 @@ public class Main {
         // Runs the plain text servers
         runPlainPOP3();
         runPlainSMTP();
+        runPlainIMAP();
 
         // Runs the secure servers
         runSecurePOP3();
@@ -171,6 +153,16 @@ public class Main {
     /****************************************************
      * IMAP
      ****************************************************/
+
+    private static void runPlainIMAP() {
+        try {
+            new ImapPlainServer(LISTEN, IMAP_PLAIN_PORT);
+            s_Logger.log("Plain IMAP created!", Logger.Level.INFO);
+        } catch (IOException e) {
+            s_Logger.log("Failed to create Plain IMAP Instance: " + e.getMessage(), Logger.Level.FATAL);
+            System.exit(-1);
+        }
+    }
 
     private static void runSecureIMAP() {
         try {
