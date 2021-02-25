@@ -1,25 +1,16 @@
 package nl.fannst;
 
-import com.mongodb.MongoClient;
-import nl.fannst.datatypes.Pair;
 import nl.fannst.imap.server.ImapPlainServer;
 import nl.fannst.imap.server.ImapSecureServer;
-import nl.fannst.models.mail.mailbox_v2.Mailbox;
-import nl.fannst.models.mail.mailbox_v2.MailboxMeta;
-import nl.fannst.models.mail.mailbox_v2.Mailboxes;
 import nl.fannst.net.secure.NioSSLServerConfig;
 import nl.fannst.pop3.server.PlainTextPOP3Server;
 import nl.fannst.pop3.server.SecurePOP3Server;
 import nl.fannst.smtp.client.SmtpClient;
-import nl.fannst.smtp.server.PlainTextSMTPServer;
-import nl.fannst.smtp.server.SecureSMTPServer;
+import nl.fannst.smtp.server.SmtpPlainServer;
+import nl.fannst.smtp.server.SmtpSecureServer;
 import nl.fannst.templates.FreeWriterRenderer;
-import org.bson.BsonDocument;
-import org.bson.json.JsonWriterSettings;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.UUID;
 
 public class Main {
     /* Other config */
@@ -108,7 +99,7 @@ public class Main {
 
     private static void runSecureSMTP() {
         try {
-            new SecureSMTPServer(s_SSLServerConfig, s_Protocol, LISTEN, SMTP_SSL_PORT);
+            new SmtpSecureServer(s_SSLServerConfig, s_Protocol, LISTEN, SMTP_SSL_PORT);
             s_Logger.log("Secure SMTP instance created!", Logger.Level.INFO);
         } catch (Exception e) {
             s_Logger.log("Failed to create secure SMTP Instance: " + e.getMessage(), Logger.Level.FATAL);
@@ -142,7 +133,7 @@ public class Main {
 
     private static void runPlainSMTP() {
         try {
-            new PlainTextSMTPServer(LISTEN, SMTP_PLAIN_PORT);
+            new SmtpPlainServer(LISTEN, SMTP_PLAIN_PORT);
             s_Logger.log("Plain POP3 created!", Logger.Level.INFO);
         } catch (IOException e) {
             s_Logger.log("Failed to create Plain POP3 Instance: " + e.getMessage(), Logger.Level.FATAL);

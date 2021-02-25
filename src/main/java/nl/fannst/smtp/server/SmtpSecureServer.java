@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class SecureSMTPServer extends NioSSLServer {
+public class SmtpSecureServer extends NioSSLServer {
     /****************************************************
      * Classy Stuff
      ****************************************************/
@@ -28,7 +28,7 @@ public class SecureSMTPServer extends NioSSLServer {
      * @param port     the port to listen on
      * @throws Exception possible exception
      */
-    public SecureSMTPServer(NioSSLServerConfig config, String protocol, String hostname, short port) throws Exception {
+    public SmtpSecureServer(NioSSLServerConfig config, String protocol, String hostname, short port) throws Exception {
         super(config, protocol, hostname, port);
 
         m_Logger = new Logger("SecureSMTPServer", Logger.Level.TRACE);
@@ -40,13 +40,12 @@ public class SecureSMTPServer extends NioSSLServer {
 
     @Override
     protected void onData(NioSSLClientWrapperArgument client) throws IOException {
-        SMTPServer.handleData((NIOClientWrapperArgument) client, (SmtpServerSession) client.getClientWrapper().attachment());
+        SmtpCommon.handleData((NIOClientWrapperArgument) client, (SmtpServerSession) client.getClientWrapper().attachment());
     }
 
     @Override
     protected void onConnect(NioSSLClientWrapperArgument client) throws IOException {
-        if (Logger.allowTrace())
-            m_Logger.log("New client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "' ;)");
+        m_Logger.logTrace(() -> "New client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "' ;)");
 
         client.getClientWrapper().attach(new SmtpServerSession());
         new SmtpReply(220, "Fannst ESMTP Secure Ready at: "
@@ -55,7 +54,6 @@ public class SecureSMTPServer extends NioSSLServer {
 
     @Override
     protected void onDisconnect(NioSSLClientWrapperArgument client) {
-        if (Logger.allowTrace())
-            m_Logger.log("Client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "' disconnected ;(");
+        m_Logger.logTrace(() -> "Client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "' disconnected ;(");
     }
 }

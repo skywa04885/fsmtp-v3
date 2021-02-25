@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class PlainTextSMTPServer extends PlainNIOServer {
+public class SmtpPlainServer extends PlainNIOServer {
     /****************************************************
      * Classy Stuff
      ****************************************************/
@@ -23,7 +23,7 @@ public class PlainTextSMTPServer extends PlainNIOServer {
      * @param hostname the hostname to listen on
      * @param port the port to listen on
      */
-    public PlainTextSMTPServer(String hostname, short port) throws IOException {
+    public SmtpPlainServer(String hostname, short port) throws IOException {
         super(hostname, port);
 
         m_Logger = new Logger("PlainSMTPServer", Logger.Level.TRACE);
@@ -36,13 +36,12 @@ public class PlainTextSMTPServer extends PlainNIOServer {
     @Override
     protected void onData(PlainNIOClientArgument client) throws IOException {
         SmtpServerSession session = (SmtpServerSession) client.getClientWrapper().attachment();
-        SMTPServer.handleData(client, session);
+        SmtpCommon.handleData(client, session);
     }
 
     @Override
     protected void onConnect(PlainNIOClientArgument client) throws IOException {
-        if (Logger.allowTrace())
-            m_Logger.log("New client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "' ;)");
+        m_Logger.logTrace(() -> "New client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "' ;)");
 
         client.getClientWrapper().attach(new SmtpServerSession());
         new SmtpReply(220, "Fannst ESMTP Ready at: "
@@ -51,7 +50,6 @@ public class PlainTextSMTPServer extends PlainNIOServer {
 
     @Override
     protected void onDisconnect(PlainNIOClientArgument client) {
-        if (Logger.allowTrace())
-            m_Logger.log("Client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "' disconnected ;(");
+        m_Logger.logTrace(() -> "Client '" + client.getClientWrapper().getSocketChannel().socket().getRemoteSocketAddress() + "' disconnected ;(");
     }
 }

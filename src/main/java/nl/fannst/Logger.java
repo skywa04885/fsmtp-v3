@@ -1,7 +1,9 @@
 package nl.fannst;
 
+import javax.security.auth.callback.Callback;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.Callable;
 
 public class Logger {
     /****************************************************
@@ -9,7 +11,17 @@ public class Logger {
      ****************************************************/
 
     public static enum Level {
-        TRACE, INFO, WARN, ERROR, FATAL
+        TRACE(ConsoleColors.GREEN_BACKGROUND), INFO(ConsoleColors.WHITE), WARN(ConsoleColors.YELLOW), ERROR(ConsoleColors.RED), FATAL(ConsoleColors.RED_BOLD);
+
+        final String m_Color;
+
+        Level(String color) {
+            m_Color = color;
+        }
+
+        public String getColor() {
+            return m_Color;
+        }
     }
 
     /****************************************************
@@ -60,7 +72,7 @@ public class Logger {
         // Builds the log message, with first the current timestamp, followed by the level
         //  and the prefix, after which the message is displayed
         builder.append(s_DateTimeFormatter.format(LocalDateTime.now())).append(" : ");
-        builder.append('(').append(m_Level.toString()).append('@').append(m_Prefix).append(')').append(" » ");
+        builder.append(m_Level.getColor()).append('(').append(m_Level.toString()).append('@').append(m_Prefix).append(')').append(ConsoleColors.RESET).append(" » ");
         builder.append(message);
 
         // Checks to which output stream the message should be put, error or just
@@ -69,6 +81,17 @@ public class Logger {
             System.err.println(builder.toString());
         } else {
             System.out.println(builder.toString());
+        }
+    }
+
+    public void logTrace(Callable<String> getMessage) {
+        if (s_Min != Level.TRACE)
+            return;
+
+        try {
+            log(getMessage.call());
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
     }
 

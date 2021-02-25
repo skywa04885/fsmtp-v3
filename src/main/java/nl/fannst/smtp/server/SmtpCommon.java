@@ -9,7 +9,7 @@ import nl.fannst.smtp.server.session.SmtpServerSession;
 
 import java.io.IOException;
 
-public class SMTPServer {
+public class SmtpCommon {
     /**
      * Handles data, gets called after each received packet
      *
