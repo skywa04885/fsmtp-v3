@@ -103,11 +103,7 @@ public class SmtpStoreMessage implements Runnable {
             message.save();
 
             // Increments the message count, and updates the message tree.
-            mailbox.getMeta().incrementMessageCount();
-            mailbox.setMetaChangeBit();
 
-            mailboxes.setHeadsChangeBit();
-            mailboxes.update();
         } catch (Exception e) {
             m_Logger.log("Failed to store message: " + e.getMessage());
             e.printStackTrace();

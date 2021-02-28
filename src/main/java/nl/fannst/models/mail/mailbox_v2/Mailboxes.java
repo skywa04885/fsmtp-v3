@@ -52,30 +52,6 @@ public class Mailboxes extends ModelLinkedToAccount {
      * Instance Methods
      ****************************************************/
 
-    private static ArrayList<Document> buildMailboxUpdates(ArrayList<Mailbox> a) {
-        ArrayList<Document> documents = new ArrayList<Document>();
-        for (Mailbox b : a)
-            documents.add(b.toUpdateDocument());
-
-        return documents;
-    }
-
-    public void update() {
-        Document document = new Document();
-
-        if ((m_ChangeBits & HEADS_CHANGE_BIT) != 0) {
-            document.append(HEADS_FIELD, buildMailboxUpdates(m_Heads));
-        }
-
-        if ((m_ChangeBits & NEXT_ID_CHANGE_BIT) != 0)
-            document.append(NEXT_ID_FIELD, m_NextID);
-
-        DatabaseConnection
-                .getInstance()
-                .getMailboxesCollection()
-                .updateOne(Filters.eq("_id", getBinaryAccountUUID()), new Document("$set", document));
-    }
-
     /**
      * Creates the document version of the class.
      *
@@ -486,5 +462,31 @@ public class Mailboxes extends ModelLinkedToAccount {
                         .map(Mailbox::fromDocument)
                         .collect(Collectors.toCollection(ArrayList::new)),
                 document.getInteger(NEXT_ID_FIELD));
+    }
+
+    public void updateMailbox(String dir) {
+        String[] segments = dir.split("/");
+        Document update = new Document();
+
+        ArrayList<Mailbox> a = m_Heads;
+
+        int i = 0;
+        for (String seg : segments) {
+            Mailbox c = null;
+            for (Mailbox b : a) {
+                if (b.getName().equals(seg)) {
+                    c = b;
+                    break;
+                }
+            }
+
+            if (c == null && ++i > segments.length)
+                return;
+
+
+        }
+
+
+
     }
 }

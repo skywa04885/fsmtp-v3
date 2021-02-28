@@ -12,7 +12,6 @@ public class Mailbox {
      ****************************************************/
 
     public static final int NAME_CHANGE_BIT = (1);
-    public static final int CHILDREN_CHANGE_BIT = (1 << 1);
     public static final int META_CHANGE_BIT = (1 << 1);
 
     public static final String NAME_FIELD = "n";
@@ -61,21 +60,6 @@ public class Mailbox {
         return document;
     }
 
-    public Document toUpdateDocument() {
-        Document document = new Document();
-
-        if ((m_ChangeBits & NAME_CHANGE_BIT) != 0)
-            document.append(NAME_FIELD, m_Name);
-        if ((m_ChangeBits & META_CHANGE_BIT) != 0)
-            document.append(META_FIELD, m_Meta.toUpdateDocument());
-        if ((m_ChangeBits & CHILDREN_CHANGE_BIT) != 0)
-            document.append(CHILDREN_FIELD, m_Children.stream()
-                .map(Mailbox::toUpdateDocument)
-                .collect(Collectors.toCollection(ArrayList::new)));
-
-        return document;
-    }
-
     /****************************************************
      * Getters / Setters
      ****************************************************/
@@ -110,7 +94,6 @@ public class Mailbox {
     }
 
     public void setChildren(ArrayList<Mailbox> children) {
-        m_ChangeBits |= CHILDREN_CHANGE_BIT;
         m_Children = children;
     }
 

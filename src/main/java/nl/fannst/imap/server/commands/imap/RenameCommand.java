@@ -53,7 +53,6 @@ public class RenameCommand implements ImapCommandHandler {
         // Since one of the sub-elements changed, we will set the heads
         //  changed bit, and perform an tree-wise update operation.
         mailboxes.setHeadsChangeBit();
-        mailboxes.update();
 
         return true;
     }

@@ -50,7 +50,6 @@ public class CreateCommand implements ImapCommandHandler {
         mailboxes.computeImapFlags();
 
         // Performs the update operation
-        mailboxes.update();
 
         //
         // Finishes

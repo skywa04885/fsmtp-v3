@@ -55,7 +55,6 @@ public class DeleteCommand implements ImapCommandHandler {
         Message.deleteAllFromMailbox(session.getAccount().getUUID(), mailbox.getID());
         mailboxes.deleteMailbox(argument.getMailbox());
         mailboxes.computeImapFlags();
-        mailboxes.update();
 
         // Sends the OK response to indicate the mailbox is deleted.
         new ImapResponse(command.getSequenceNo(), ImapResponse.Type.OK, DELETE_COMPLETED_MESSAGE).write(client);
