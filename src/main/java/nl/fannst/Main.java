@@ -9,7 +9,9 @@ import nl.fannst.smtp.client.SmtpClient;
 import nl.fannst.smtp.server.SmtpPlainServer;
 import nl.fannst.smtp.server.SmtpSecureServer;
 import nl.fannst.templates.FreeWriterRenderer;
+import org.apache.commons.cli.*;
 
+import javax.xml.crypto.Data;
 import java.io.IOException;
 
 public class Main {
@@ -17,16 +19,22 @@ public class Main {
     private static final String LISTEN = "0.0.0.0";
 
     /* SMTP Ports */
-    private static final short SMTP_SSL_PORT = 465;
-    private static final short SMTP_PLAIN_PORT = 25;
+    private static short SMTP_SSL_PORT = 465;
+    private static short SMTP_PLAIN_PORT = 25;
+    private static boolean SMTP_RUN_SSL = false;
+    private static boolean SMTP_RUN_PLAIN = false;
 
     /* POP3 Ports */
-    private static final short POP3_SSL_PORT = 995;
-    private static final short POP3_PLAIN_PORT = 110;
+    private static short POP3_SSL_PORT = 995;
+    private static short POP3_PLAIN_PORT = 110;
+    private static boolean POP3_RUN_SSL = false;
+    private static boolean POP3_RUN_PLAIN = false;
 
     /* IMAP Ports */
-    private static final short IMAP_PLAIN_PORT = 143;
-    private static final short IMAP_SSL_PORT = 993;
+    private static short IMAP_PLAIN_PORT = 143;
+    private static short IMAP_SSL_PORT = 993;
+    private static boolean IMAP_RUN_SSL = false;
+    private static boolean IMAP_RUN_PLAIN = false;
 
     /* Global shit */
     private static final String s_Protocol = "SSLv3";
@@ -39,6 +47,11 @@ public class Main {
      * @param args the command line arguments.
      */
     public static void main(String[] args) {
+        parseArguments(args);
+
+        // Prints some stuff.
+        s_Logger.log("Programmed by Luke A.C.A. Rieff so yeah... Gonna blow up!", Logger.Level.WARN);
+
         // Sets some default configuration
         s_SSLServerConfig.setServerKeyFile(System.getenv("SERVER_KEY_FILE"));
         s_SSLServerConfig.setServerKeyPass(System.getenv("SERVER_KEY_PASS"));
@@ -47,26 +60,153 @@ public class Main {
         s_SSLServerConfig.setTrustFile(System.getenv("TRUST_FILE"));
         s_SSLServerConfig.setTrustStorePass(System.getenv("TRUST_STORE_PASS"));
 
-        // Prints some introduction text
-        s_Logger.log("Hello there! This server is NOT open source, all rights are reserved by Luke A.C.A. Rieff - Fannst Software.", Logger.Level.WARN);
-
-        System.out.println("* I know, why is the repo visible than ? I want people to trust the source code,\r\n* and prove that I actually encrypt their messages.\r\n* "
-            + "If there is any company out there,\r\n* I'm free for hiring (And ready to learn more).\r\n* I'm ready to learn new stuff ahha.\r\n* "
-            + "For contact, try this email: lrieff@fannst.nl (Yes, Runs FSMTP/FIMAP/FPOP haha)");
-
         // Prepares for running
         prepare();
         prepareSMTPClient();
 
         // Runs the plain text servers
-        runPlainPOP3();
-        runPlainSMTP();
-        runPlainIMAP();
+        if (POP3_RUN_PLAIN)
+            runPlainPOP3();
+        if (SMTP_RUN_PLAIN)
+            runPlainSMTP();
+        if (IMAP_RUN_PLAIN)
+            runPlainIMAP();
 
         // Runs the secure servers
-        runSecurePOP3();
-        runSecureSMTP();
-        runSecureIMAP();
+        if (POP3_RUN_SSL)
+            runSecurePOP3();
+        if (SMTP_RUN_SSL)
+            runSecureSMTP();
+        if (IMAP_RUN_SSL)
+            runSecureIMAP();
+    }
+
+    private static void parseArguments(String[] args) {
+        Options options = new Options();
+
+        // Arguments to specify which servers to run.
+
+        Option runPop3Ssl = new Option("r_pop3_s", "run_pop3_ssl", false, "Run POP3 SSL Server");
+        options.addOption(runPop3Ssl);
+        Option runPop3Plain = new Option("r_pop3_p", "run_pop3_plain", false, "Run POP3 Plain Server");
+        options.addOption(runPop3Plain);
+
+        Option runImapSsl = new Option("r_imap_s", "run_imap_ssl", false, "Run IMAP SSL Server");
+        options.addOption(runImapSsl);
+        Option runImapPlain = new Option("r_imap_p", "run_imap_plain", false, "Run IMAP Plain Server");
+        options.addOption(runImapPlain);
+
+        Option runSmtpSsl = new Option("r_smtp_s", "run_smtp_ssl", false, "Run SMTP SSL Server");
+        options.addOption(runSmtpSsl);
+        Option runSmtpPlain = new Option("r_smtp_p", "run_smtp_plain", false, "Run SMTP Plain Server");
+        options.addOption(runSmtpPlain);
+
+        // Arguments to specify server ports.
+
+        Option pop3Port = new Option ("pop3", "pop3_port", true, "POP3 Port SSL, Plain");
+        pop3Port.setRequired(false);
+        pop3Port.setArgs(2);
+        pop3Port.setArgName("SSL Port, Plain Port");
+        pop3Port.setValueSeparator(',');
+        options.addOption(pop3Port);
+
+        Option smtpPort = new Option("smtp", "smtp_port", true, "SMTP Port SSL, Plain");
+        smtpPort.setRequired(false);
+        smtpPort.setArgs(2);
+        smtpPort.setArgName("SSL Port, Plain Port");
+        smtpPort.setValueSeparator(',');
+        options.addOption(smtpPort);
+
+        Option imapPort = new Option("imap", "imap_port", true, "IMAP Port SSL, Plain");
+        imapPort.setRequired(false);
+        imapPort.setArgs(2);
+        imapPort.setArgName("SSL Port, Plain Port");
+        imapPort.setValueSeparator(',');
+        options.addOption(imapPort);
+
+        // Performs the command parsing.
+
+        CommandLineParser commandLineParser = new DefaultParser();
+        CommandLine commandLine = null;
+
+        try {
+            commandLine = commandLineParser.parse(options, args);
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+
+            HelpFormatter helpFormatter = new HelpFormatter();
+            helpFormatter.printHelp("[exec] <args ...>", options);
+
+            System.exit(1);
+        }
+
+        // Reads the arguments.
+
+        if (commandLine.hasOption("run_pop3_ssl"))
+            POP3_RUN_SSL = true;
+        if (commandLine.hasOption("run_pop3_plain"))
+            POP3_RUN_PLAIN = true;
+
+        if (commandLine.hasOption("run_imap_ssl"))
+            IMAP_RUN_SSL = true;
+        if (commandLine.hasOption("run_imap_plain"))
+            IMAP_RUN_PLAIN = true;
+
+        if (commandLine.hasOption("run_smtp_ssl"))
+            SMTP_RUN_SSL = true;
+        if (commandLine.hasOption("run_smtp_plain"))
+            SMTP_RUN_PLAIN = true;
+
+        if (commandLine.hasOption("smtp") && commandLine.getOptionValues("smtp").length == 2) {
+            String ssl = commandLine.getOptionValues("smtp")[0];
+            String plain = commandLine.getOptionValues("smtp")[1];
+
+            try {
+                SMTP_SSL_PORT = Short.parseShort(ssl);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                SMTP_PLAIN_PORT = Short.parseShort(plain);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (commandLine.hasOption("pop3") && commandLine.getOptionValues("pop3").length == 2) {
+            String ssl = commandLine.getOptionValues("pop3")[0];
+            String plain = commandLine.getOptionValues("pop3")[1];
+
+            try {
+                POP3_SSL_PORT = Short.parseShort(ssl);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                POP3_PLAIN_PORT = Short.parseShort(plain);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (commandLine.hasOption("imap") && commandLine.getOptionValues("imap").length == 2) {
+            String ssl = commandLine.getOptionValues("imap")[0];
+            String plain = commandLine.getOptionValues("imap")[1];
+
+            try {
+                IMAP_SSL_PORT = Short.parseShort(ssl);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                IMAP_PLAIN_PORT = Short.parseShort(plain);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private static void prepare() {

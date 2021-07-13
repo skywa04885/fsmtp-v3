@@ -9,7 +9,6 @@ import nl.fannst.datatypes.Pair;
 import nl.fannst.encryption.AES;
 import nl.fannst.encryption.RSA;
 import nl.fannst.mime.Address;
-import nl.fannst.models.DatabaseModel;
 import org.bson.BsonBinarySubType;
 import org.bson.BsonDateTime;
 import org.bson.Document;
@@ -24,7 +23,7 @@ import java.security.PublicKey;
 import java.time.Instant;
 import java.util.*;
 
-public class Message extends DatabaseModel {
+public class Message {
     /****************************************************
      * Data Types
      ****************************************************/
@@ -114,7 +113,6 @@ public class Message extends DatabaseModel {
      *
      * @return the document version of message.
      */
-    @Override
     public Document toDocument() {
         // Creates the document array version of the TO field value.
         ArrayList<Document> rcptTo = new ArrayList<Document>();
@@ -147,7 +145,6 @@ public class Message extends DatabaseModel {
     /**
      * Saves the current instance to the database
      */
-    @Override
     public void save() {
         DatabaseConnection
                 .getInstance()
@@ -308,8 +305,7 @@ public class Message extends DatabaseModel {
                 .projection(Projections.fields(Arrays.asList(
                         Projections.include("_id"),
                         Projections.include("raw_size")
-                )))
-                .limit(120);
+                )));
 
         // Loops over all the found documents, and puts the data into the result
         //  array so we can read it later.

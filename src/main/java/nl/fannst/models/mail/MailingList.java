@@ -3,14 +3,13 @@ package nl.fannst.models.mail;
 import com.mongodb.client.model.Filters;
 import nl.fannst.DatabaseConnection;
 import nl.fannst.mime.Address;
-import nl.fannst.models.DatabaseModel;
 import org.bson.Document;
 
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.UUID;
 
-public class MailingList extends DatabaseModel {
+public class MailingList {
     /****************************************************
      * Classy Stuff
      ****************************************************/
@@ -65,12 +64,10 @@ public class MailingList extends DatabaseModel {
         return fromDocument(document);
     }
 
-    @Override
     public void save() {
 
     }
 
-    @Override
     public Document toDocument() {
         return null;
     }

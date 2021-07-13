@@ -9,6 +9,7 @@ import com.mongodb.client.model.Projections;
 import nl.fannst.DatabaseConnection;
 import nl.fannst.datatypes.Pair;
 import nl.fannst.mime.Address;
+import nl.fannst.models.BasicDocument;
 import org.bson.BsonBinarySubType;
 import org.bson.Document;
 import org.bson.types.Binary;
@@ -20,7 +21,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.UUID;
 
-public class BasicAccount {
+public class BasicAccount extends BasicDocument {
     /****************************************************
      * Classy Stuff
      ****************************************************/

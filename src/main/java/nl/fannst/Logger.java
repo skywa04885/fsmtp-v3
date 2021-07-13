@@ -72,7 +72,7 @@ public class Logger {
         // Builds the log message, with first the current timestamp, followed by the level
         //  and the prefix, after which the message is displayed
         builder.append(s_DateTimeFormatter.format(LocalDateTime.now())).append(" : ");
-        builder.append(m_Level.getColor()).append('(').append(m_Level.toString()).append('@').append(m_Prefix).append(')').append(ConsoleColors.RESET).append(" » ");
+        builder.append(level.getColor()).append('(').append(level.toString()).append('@').append(level).append(')').append(ConsoleColors.RESET).append(" » ");
         builder.append(message);
 
         // Checks to which output stream the message should be put, error or just
